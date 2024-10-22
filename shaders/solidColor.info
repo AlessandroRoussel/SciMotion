@@ -1,0 +1,17 @@
+{
+
+	"name": "Solid color",
+	"flags": ["WRITEONLY"],
+	"parameters": [
+		{
+			"name": "Color",
+			"identifier": "color",
+			"data_type": "float",
+			"dimension": 4,
+			"default_value": [0,0,0,1],
+			"min_value": 0,
+			"max_value": 1
+		}
+	]
+
+}
