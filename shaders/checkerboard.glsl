@@ -12,11 +12,10 @@ void main() {
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 dimensions = imageSize(imgOutput).xy;
 
-	vec2 xy = vec2(pixel_coords) - center * vec2(dimensions);    
-	vec2 q = sin(3.141592653589793*xy/cell_size);
-    float m = q.x * q.y;
-    float checker = float(m < 0.);
+	vec2 xy = vec2(pixel_coords) - center * vec2(dimensions);
+	vec2 q = xy/cell_size-2.*floor(xy/2./cell_size);
+    bool checker = q.x < 1. ^^ q.y < 1.;
     
-    vec4 color = checker * color_B + (1.-checker) * color_A;
+    vec4 color = mix(color_A, color_B, float(checker));
 	imageStore(imgOutput, pixel_coords, color);
 }

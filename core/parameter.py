@@ -8,7 +8,12 @@ in order to represent various types of data (positions, colors...)
 """
 
 class Parameter:
-	data_types = {"float": np.float32, "int": int, "bool": bool} 	# names given to data-types
+	# allowed data-types
+	data_types = {
+		"float": np.float32,
+		"int": int,
+		"bool": bool
+	}
 	
 	def __init__(self, identifier="", name="", data_type="float", dimension=1, default_value=0, min_value=None, max_value=None):
 		self.identifier = identifier 		# str: unique parameter's name
@@ -16,8 +21,7 @@ class Parameter:
 		
 		# check if data-type is allowed
 		if data_type not in Parameter.data_types.keys():
-			print("Unknown data-type")
-			return
+			raise TypeError(f"Unknown parameter data-type: {data_type}")
 		
 		self.dimension = dimension 			# int: array size
 		self.data_type = data_type 			# str: name of data-type (float, int, bool)

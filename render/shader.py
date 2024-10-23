@@ -75,7 +75,7 @@ class Shader:
 	# compile the shader program
 	def compileShader(self):
 		if not self.loaded:
-			print("Shader not loaded")
+			raise RuntimeError("Shader not loaded")
 			return
 		
 		# create and compile shader
@@ -108,7 +108,7 @@ class Shader:
 	# TODO : place this in the Parameter class instead
 	def setParameter(self, identifier, value):
 		if identifier not in self.parametersIds:
-			print("Parameter "+str(identifier)+" doesn't exist")
+			raise NameError(f"Parameter {identifier} doesn't exist")
 			return
 		paramId = self.parametersIds[identifier]
 		self.parameters[paramId].setValue(value)

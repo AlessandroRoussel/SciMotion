@@ -17,8 +17,7 @@ class RenderEngine():
 		self.textureB = None 	# OpenGL textureB id
 
 		if not glfw.init():
-			print("Couldn't initialize GLFW")
-			return
+			raise RuntimeError("Couldn't initialize GLFW")
 	
 	# destructor
 	def __del__(self):
@@ -48,9 +47,8 @@ class RenderEngine():
 			self.context = glfw.create_window(width, height, "Rendering context", None, None)
 			
 			if(not self.context):
-				print("Couldn't create render context")
 				glfw.terminate()
-				return
+				raise RuntimeError("Couldn't create render context")
 			
 			# use new context
 			glfw.make_context_current(self.context)
