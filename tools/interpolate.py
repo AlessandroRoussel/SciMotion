@@ -33,8 +33,7 @@ class Interpolate:
 		if x <= x0: return y0
 		if x >= x3: return y3
 		if x0 == x3:
-			print("Error: temporalCubicBezier, x0 == x3")
-			return y0
+			raise ValueError("TemporalCubicBezier error: x0 == x3")
 		X = (x-x0)/(x3-x0)
 		a = 1+3*(x1-x2)/(x3-x0)
 		b = (x2+x0-2*x1)/(x3-x0)
