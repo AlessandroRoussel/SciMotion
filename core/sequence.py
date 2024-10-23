@@ -6,7 +6,7 @@ including its video parameters, and the stack of layers it contains
 class Sequence:
 	unique_id = 0
 	
-	def __init__(self, project, name="New sequence", width=1920, height=1080, frame_rate=60, duration=600):
+	def __init__(self, project: "Project", name="New sequence", width=1920, height=1080, frame_rate=60, duration=600):
 		self.id = Sequence.unique_id 	# int: give a unique id
 		self.project = project 			# reference to the project it belongs to
 		self.name = name 				# str: sequence's displayed name
@@ -21,7 +21,7 @@ class Sequence:
 		Sequence.unique_id += 1 		# increment unique id
 	
 	# adds a layer to the sequence
-	def addLayer(self, layer):
+	def addLayer(self, layer: "Layer"):
 		if layer.id not in self.layers:
 			self.layers[layer.id] = layer
 			self.layer_stack.append(layer.id)

@@ -26,16 +26,18 @@ class MainWindow(QMainWindow):
 		self.setStatusBar(QStatusBar(self)) # create status bar
 		self.createMenuBar() 				# create menu bar
 	
-	# center the window on the screen
+	# center the window on the screen it is currently in
 	def center(self):
+		screen = self.screen()
+		screen_geometry = screen.geometry()
+		screen_center = screen_geometry.center()
 		qr = self.frameGeometry()
-		cp = QDesktopWidget().availableGeometry().center()
-		qr.moveCenter(cp)
+		qr.moveCenter(screen_center)
 		self.move(qr.topLeft())
 	
 	# setup window
 	def windowSettings(self):
-		self.setWindowIcon(QIcon("icon.png")) 	# define window icon
+		self.setWindowIcon(QIcon("icon.ico")) 	# define window icon
 		displayedTitle = params.app_title 		# define window title
 		displayedTitle += " "+str(params.app_version_major) # add app maj version
 		displayedTitle += "."+str(params.app_version_minor) # add app min version
@@ -113,7 +115,7 @@ class MainWindow(QMainWindow):
 		menu_file.addSeparator()
 		menu_file.addAction(self.createAction("Project parameters", Actions.projectParameters, "Ctrl+P"))
 		menu_file.addSeparator()
-		menu_file.addAction(self.createAction("Close project", Actions.closeProject, "Ctrl+Q"))
+		menu_file.addAction(self.createAction("Close", Actions.close, "Ctrl+Q"))
 		
 		# edit menu
 		menu_edit = menu.addMenu("&Edit")
@@ -125,7 +127,7 @@ class MainWindow(QMainWindow):
 	def createAction(self, title, function, shortcut=None):
 		action = QAction(title, self)
 		action.setStatusTip(title)
-		action.triggered.connect(function)
+		action.triggered.connect(lambda: function(self))
 		if(shortcut is not None):
 			action.setShortcut(QKeySequence(shortcut))
 		return action

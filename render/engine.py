@@ -20,12 +20,19 @@ class RenderEngine():
 			print("Couldn't initialize GLFW")
 			return
 	
+	# destructor
+	def __del__(self):
+		# TODO : cleanup OpenGL entities
+		GL.glDeleteTextures(1, [self.textureA])
+		GL.glDeleteTextures(1, [self.textureB])
+	
 	# create a 2D rgba float32 texture
 	def createTexture(self):
-		texture = GL.glGenTextures(1)
-		GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
+		texture_id = GL.glGenTextures(1)
+		GL.glBindTexture(GL.GL_TEXTURE_2D, texture_id)
 		GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, GL.GL_RGBA32F, self.width, self.height)
-		return texture
+		GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+		return texture_id
 	
 	# create or update the context to the needed dimensions
 	def setContextSize(self, width, height):
@@ -65,13 +72,14 @@ class RenderEngine():
 			GL.glDeleteTextures(1, [self.textureB])
 	
 	# initialize a texture with an empty image
-	def clearTexture(self, texture):
+	def clearTexture(self, texture_id):
 	    zeros = np.zeros((self.height, self.width, 4), dtype=np.float32)
-	    GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
+	    GL.glBindTexture(GL.GL_TEXTURE_2D, texture_id)
 	    GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, self.width, self.height, GL.GL_RGBA, GL.GL_FLOAT, zeros)
+	    GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 	
 	# use the engine the render a stack of shaders within a Renderer object
-	def render(self, renderer):
+	def render(self, renderer: "Renderer"):
 		self.setContextSize(renderer.width, renderer.height)
 		self.clearTexture(self.textureA)
 		destIsTextureA = renderer.runThrough(self)
@@ -79,14 +87,15 @@ class RenderEngine():
 		renderer.storeResult(result)
 	
 	# retrieve the image data from the destination texture
-	def retrieveData(self, texture):
-		GL.glBindTexture(GL.GL_TEXTURE_2D, texture)
+	def retrieveData(self, texture_id):
+		GL.glBindTexture(GL.GL_TEXTURE_2D, texture_id)
 		data = GL.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, GL.GL_FLOAT, None)
 		image_data = np.frombuffer(data, dtype=np.float32).reshape((self.height, self.width, 4))
+		GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 		return image_data
 	
 	# bind source and destination textures in alternating order
-	def bindTextures(self, destIsTextureA):
+	def bindTextures(self, destIsTextureA: bool):
 		if destIsTextureA:
 			GL.glBindImageTexture(0, self.textureA, 0, GL.GL_FALSE, 0, GL.GL_WRITE_ONLY, GL.GL_RGBA32F)
 			GL.glBindImageTexture(1, self.textureB, 0, GL.GL_FALSE, 0, GL.GL_READ_ONLY, GL.GL_RGBA32F)

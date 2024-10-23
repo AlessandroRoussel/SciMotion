@@ -9,7 +9,7 @@ class Layer:
 	
 	unique_id = 0
 	
-	def __init__(self, sequence, name="New layer", width=1920, height=1080, start_frame=0, end_frame=600):
+	def __init__(self, sequence: "Sequence", name="New layer", width=1920, height=1080, start_frame=0, end_frame=600):
 		self.id = Layer.unique_id 		# int: give a unique id
 		self.sequence = sequence 		# reference to the sequence it belongs to
 		self.name = name 				# str: layer's displayed name

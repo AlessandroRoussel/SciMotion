@@ -14,7 +14,7 @@ class Renderer:
 		self.stack_start = 0 	# shaders to skip
 	
 	# adds a shader at the bottom of the stack
-	def addShader(self, shader):
+	def addShader(self, shader: "Shader"):
 		if shader.hasFlag("WRITEONLY"):
 			# if the shader exhibits the WRITEONLY flag,
 			# we skip all previous shaders, because its
@@ -23,7 +23,7 @@ class Renderer:
 		self.shader_list.append(shader)
 	
 	# applies all shaders in order using a RenderEngine
-	def runThrough(self, engine):
+	def runThrough(self, engine: "RenderEngine"):
 		# we use a ping-pong method with two textures alternating
 		# between being the source or the destination texture
 		destIsTextureA = True

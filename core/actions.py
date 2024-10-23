@@ -10,32 +10,33 @@ class Actions:
 	################
 	# file actions #
 	################
-	def newProject(s): 					# create a new project
-		print("New project", s)
+	def newProject(window: "MainWindow"): 			# create a new project
+		print("New project")
 		
-	def openProject(s): 				# open an existing project
-		print("Open project", s)
+	def openProject(window: "MainWindow"): 			# open an existing project
+		print("Open project")
 	
-	def saveProject(s): 				# save the current project
-		print("Save project", s)
+	def saveProject(window: "MainWindow"): 			# save the current project
+		print("Save project")
 	
-	def saveProjectAs(s): 				# save the project as a new file
-		print("Save project as", s)
+	def saveProjectAs(window: "MainWindow"): 			# save the project as a new file
+		print("Save project as")
 	
-	def projectParameters(s): 			# open the project parameters
-		print("Project parameters", s)
+	def projectParameters(window: "MainWindow"): 		# open the project parameters
+		print("Project parameters")
 	
-	def closeProject(s): 				# close the current project
-		print("Close project", s)
+	def close(window: "MainWindow"): 					# close the app
+		# TODO : add conditions like saving before closing	
+		window.close()
 	
 	################
 	# edit actions #
 	################
-	def cut(s): 				# cut (Ctrl+X)
-		print("Cut", s)
+	def cut(window: "MainWindow"): 					# cut (Ctrl+X)
+		print("Cut", window)
 		
-	def copy(s): 				# copy (Ctrl+C)
-		print("Copy", s)
+	def copy(window: "MainWindow"): 					# copy (Ctrl+C)
+		print("Copy", window)
 		
-	def paste(s): 				# paste (Ctrl+V)
-		print("Paste", s)
+	def paste(window: "MainWindow"): 					# paste (Ctrl+V)
+		print("Paste", window)

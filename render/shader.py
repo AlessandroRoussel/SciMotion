@@ -1,7 +1,8 @@
-from core.parameter import Parameter
 from OpenGL import GL
 import json
 import os
+
+from core.parameter import Parameter
 
 """
 The Shader class represent a visual effects that the user can
@@ -29,6 +30,11 @@ class Shader:
 		self.flags = set() 				# set of flags
 		
 		self.loadShader() 		# load in the shader files
+	
+	# destructor
+	def __del__(self):
+		# TODO : cleanup OpenGL entities
+		GL.glDeleteProgram(self.program)
 	
 	# loads the GLSL code (shaders/*id*.glsl)
 	def loadShaderCode(self):
@@ -82,6 +88,9 @@ class Shader:
 		GL.glAttachShader(self.program, shader)
 		GL.glLinkProgram(self.program)
 		
+		# clean up shader
+		GL.glDeleteShader(shader)
+		
 		# update compilation status
 		self.compiled = True
 	
@@ -90,7 +99,7 @@ class Shader:
 		return self.loaded and self.compiled
 	
 	# apply the shader program using a RenderEngine
-	def dispatch(self, engine):
+	def dispatch(self, engine: "RenderEngine"):
 		GL.glUseProgram(self.program)
 		GL.glDispatchCompute(engine.width, engine.height, 1)
 		GL.glMemoryBarrier(GL.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)

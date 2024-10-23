@@ -7,7 +7,7 @@ a structured tree of the project's sequences and media
 """
 
 class PaneExplorer(QFrame):
-	def __init__(self, main_window):
+	def __init__(self, main_window: "MainWindow"):
 		super(QFrame, self).__init__(main_window)
 		self.setFrameShape(QFrame.StyledPanel) 		# style the frame
 		self.tree = QTreeWidget() 					# tree widget
