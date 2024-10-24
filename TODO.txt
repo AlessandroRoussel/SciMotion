@@ -1,0 +1,75 @@
+TODO:
+  separate thread for rendering
+
+Coding conventions:
+  PEP8 convention
+  no encoding declaration
+  indent using spaces
+  max length of 79 characters and docstring/comments to 72 characters
+  clear meaning of each variable name, avoid abbreviations
+  variables, functions: snake_case
+  classes: CamelCase
+  avoid built-in names
+  modules: lowercase, short descriptive names, with no underscores
+  sub_modules: with underscore
+  type hints and function annotations (e.g. def function(sequence: Dict[int: str]) -> int:)
+  create CustomExceptionError classes using Error suffix
+  define constants in SHOUTING_CASE at the module level
+  2 blank lines before class, 1 before method
+  imports in blocks (standard, related ext lib, local app) separated by 1 blank line
+  https://peps.python.org/pep-0008/#naming-conventions
+  comment in full sentences with first capital
+  block comments are sentences ending with period, using #, and aligned with following code
+  add inline comments only when necessary
+  write docstrings for public methods
+  capitalize acronyms in CamelCase (NP, HTTP...)
+  dont use properties or decorators for getter and setter
+  private variables and methods: _var, _function
+  conflicting built-in names: var_
+  class methods use cls argument
+  always make private if public not needed
+  no getters setters for simple public attributes
+  dont concatenate string with +
+  derive CustomExceptions from Exception and not BaseException
+  use str.endswith(".ext") to check extensions
+  always use isinstance when checking types
+  add variable type hints
+
+Models:
+  Layer:
+    title: str
+    _position: Parameter(Float2)
+    _scale: Parameter(Float2)
+    _rotation: Parameter(Angle)
+    _opacity: Parameter(Float)
+    _effects_list: list[Effect] = list()
+  
+  Effect:
+    _shader_id: &Shader
+    _parameters: dict[str:Parameter]
+  
+  Parameter:
+    title: str = "Parameter"
+    _datatype: class
+    _constant: bool = False
+    _dimension: int = 1
+    _current_value: DataType = DataType.default()
+    _default_value: DataType = DataType.default()
+    _min_value: DataType = None
+    _max_value: DataType = None
+    _keyframe_list: list[Keyframe] = list()
+  
+    get_current_value(self) -> DataType
+    set_current_value(self, value: DataType)
+  
+  EffectsHandling:
+    add_effect(layer, shader)
+  
+  AnimationHandling:
+    add_keyframe(parameter, keyframe)
+    remove_keyframe(parameter, keyframe)
+    set_value_from_frame(parameter, frame)
+  
+  Keyframe:
+    value: DataType
+    frame: int
