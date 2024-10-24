@@ -1,0 +1,40 @@
+{
+
+	"name": "Checkerboard",
+	"flags": ["WRITEONLY"],
+	"parameters": [
+		{
+			"name": "Color A",
+			"identifier": "color_A",
+			"data_type": "float",
+			"dimension": 4,
+			"default_value": [0.7,0.7,0.7,1],
+			"min_value": 0,
+			"max_value": 1
+		},
+		{
+			"name": "Color B",
+			"identifier": "color_B",
+			"data_type": "float",
+			"dimension": 4,
+			"default_value": [1,1,1,1],
+			"min_value": 0,
+			"max_value": 1
+		},
+		{
+			"name": "Cell size",
+			"identifier": "cell_size",
+			"data_type": "float",
+			"dimension": 2,
+			"default_value": [50,50]
+		},
+		{
+			"name": "Center",
+			"identifier": "center",
+			"data_type": "float",
+			"dimension": 2,
+			"default_value": [0.5,0.5]
+		}
+	]
+
+}
