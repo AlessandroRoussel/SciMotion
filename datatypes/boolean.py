@@ -5,8 +5,9 @@ This module defines the Boolean DataType, which represents a
 boolean. It is stored as a numpy bool array with 1 entry.
 """
 
-from datatypes.ndarray import NDArray
 import numpy as np
+
+from datatypes.ndarray import NDArray
 
 
 class Boolean(NDArray):

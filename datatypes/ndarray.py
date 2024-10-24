@@ -6,9 +6,10 @@ of numbers. It is stored as a numpy array and can be of a defined
 numpy dtype and shape.
 """
 
-from datatypes.datatype import DataType
-from typing import Union, Tuple, Type, Any, Callable
 import numpy as np
+from typing import Union, Tuple, Type, Any, Callable
+
+from datatypes.datatype import DataType
 
 
 class NDArray(DataType):
@@ -40,9 +41,7 @@ class NDArray(DataType):
                 self._dtype = dtype
 
             # Make shape attribute a tuple.
-            if (isinstance(shape, np.ndarray)
-                or isinstance(shape, list)
-                    or isinstance(shape, tuple)):
+            if NDArray.is_array(shape):
                 self._shape = tuple(shape)
             else:
                 self._shape = (shape,)
@@ -59,9 +58,7 @@ class NDArray(DataType):
                         self._value = self._value.repeat(self._shape[0])
 
             elif len(self._shape) > 1:  # We store a multi-dimensional matrix.
-                if (isinstance(values[0], np.ndarray)
-                    or isinstance(values[0], list)
-                        or isinstance(values[0], tuple)):
+                if NDArray.is_array(values[0]):
                     self._value = np.array(values, dtype=self._dtype)
                 else:
                     self._value = np.reshape(
@@ -81,3 +78,10 @@ class NDArray(DataType):
         else:
             return self.__class__(function(self._value,
                                            np.array(other, dtype=self._dtype)))
+
+    @staticmethod
+    def is_array(val: Any) -> bool:
+        """Tells if an object is a numpy array, a list or a tuple."""
+        return (isinstance(val, np.ndarray)
+                or isinstance(val, list)
+                or isinstance(val, tuple))

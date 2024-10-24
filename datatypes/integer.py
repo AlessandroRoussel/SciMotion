@@ -5,8 +5,9 @@ This module defines the Integer DataType, which represents an
 integer number. It is stored as a numpy int32 array with 1 entry.
 """
 
-from datatypes.ndarray import NDArray
 import numpy as np
+
+from datatypes.ndarray import NDArray
 
 
 class Integer(NDArray):
