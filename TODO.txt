@@ -6,10 +6,11 @@ Sequence flow:
   EDITING can call RENDERING, MEDIA
   RENDERING can call MEDIA
 
-GUI can never see the entities within EDITING (only retrieve generic data or EDITING DTO)
-EDITING can never see the entities within RENDERING or MEDIA (only retrieve generic data)
-The module RENDERING must be independent from other modules (it can know MEDIA but that's it)
-Use DTO (class with only data, no methods / logic) to communicate from EDITING to RENDERING
+Instructions:
+  GUI can never see the entities within EDITING (only retrieve generic data or EDITING DTO)
+  EDITING can never see the entities within RENDERING or MEDIA (only retrieve generic data)
+  The module RENDERING must be independent from other modules (it can know MEDIA but that's it)
+  Use DTO (class with only data, no methods / logic) to communicate from EDITING to RENDERING
 
 Coding conventions:
   PEP8 convention
