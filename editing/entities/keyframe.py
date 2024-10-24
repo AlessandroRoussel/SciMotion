@@ -6,8 +6,9 @@ specific value for a Parameter is set. Keyframe objects are
 used to create transitions between different values.
 """
 
-from datatypes.entities.datatype import DataType
 from enum import Enum
+
+from datatypes.entities.datatype import DataType
 
 
 class KeyframeType(Enum):
