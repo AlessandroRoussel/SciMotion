@@ -7,7 +7,7 @@ numpy dtype and shape.
 """
 
 import numpy as np
-from typing import Union, Tuple, Type, Any, Callable
+from typing import Union, Tuple, Type, Any, Callable, Self
 
 from datatypes.datatype import DataType
 
@@ -71,13 +71,27 @@ class NDArray(DataType):
     def _combine(self,
                  other,
                  function: Callable[[Any, Any], Any]
-                 ) -> "NDArray":
+                 ) -> Self:
         """Combine this array with another using a specified function."""
         if isinstance(other, self.__class__):
             return self.__class__(function(self._value, other._value))
         else:
             return self.__class__(function(self._value,
                                            np.array(other, dtype=self._dtype)))
+
+    def clip(self, min_value: Self, max_value: Self) -> Self:
+        """Return a value clipped between min and max."""
+        value = self._value
+        if min_value is not None:
+            value = np.maximum(min_value._value, value)
+        if max_value is not None:
+            value = np.minimum(max_value._value, value)
+        return self.__class__(value)
+
+    def __repr__(self):
+        """Return a string representation of the NDArray."""
+        string = f"{self._value}"[1:-1]
+        return f"{type(self).__name__}({string})"
 
     @staticmethod
     def is_array(val: Any) -> bool:

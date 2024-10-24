@@ -7,7 +7,7 @@ supports addition, subtraction, multiplication, and division,
 and can be combined with both instances and numeric values.
 """
 
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 
 class DataType:
@@ -18,26 +18,26 @@ class DataType:
     def __init__(self, value):
         self._value = value
 
-    def __add__(self, other) -> "DataType":
+    def __add__(self, other) -> Self:
         """Define the + operator."""
         return self._combine(other, self.__class__._add)
 
-    def __sub__(self, other) -> "DataType":
+    def __sub__(self, other) -> Self:
         """Define the - operator."""
         return self._combine(other, self.__class__._sub)
 
-    def __mul__(self, other) -> "DataType":
+    def __mul__(self, other) -> Self:
         """Define the * operator."""
         return self._combine(other, self.__class__._mul)
 
-    def __truediv__(self, other) -> "DataType":
+    def __truediv__(self, other) -> Self:
         """Define the / operator."""
         return self._combine(other, self.__class__._div)
 
     def _combine(self,
                  other,
                  function: Callable[[Any, Any], Any]
-                 ) -> "DataType":
+                 ) -> Self:
         """Combine this object with another using a specified function."""
         if isinstance(other, self.__class__):
             return self.__class__(function(self._value, other._value))
@@ -47,6 +47,20 @@ class DataType:
     def __repr__(self):
         """Return a string representation of the DataType."""
         return f"{type(self).__name__}({self._value})"
+
+    def clip(self, min_value: Self, max_value: Self) -> Self:
+        """Return a value clipped between min and max."""
+        value = self._value
+        if min_value is not None:
+            value = max(min_value._value, value)
+        if max_value is not None:
+            value = min(max_value._value, value)
+        return self.__class__(value)
+
+    @classmethod
+    def default(cls):
+        """Return an instance with default value."""
+        return cls(0)
 
     @staticmethod
     def _add(a, b):
