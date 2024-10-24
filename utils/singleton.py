@@ -6,7 +6,7 @@ instance of the class can ever exist.
 """
 
 
-class Singleton:
+class Singleton(type):
     """A singleton metaclass."""
 
     _instances = dict()
