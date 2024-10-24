@@ -1,6 +1,11 @@
 TODO:
   separate thread for rendering
 
+Sequence flow:
+  GUI can call EDITING
+  EDITING can call RENDERING, MEDIA
+  RENDERING can call MEDIA
+
 Coding conventions:
   PEP8 convention
   no encoding declaration
