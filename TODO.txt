@@ -72,13 +72,13 @@ Models:
     get_current_value(self) -> DataType
     set_current_value(self, value: DataType)
   
-  EffectsHandling:
+  EffectsService:
     add_effect(layer, shader)
   
-  AnimationHandling:
+  AnimationService:
     add_keyframe(parameter, keyframe)
     remove_keyframe(parameter, keyframe)
-    set_value_from_frame(parameter, frame)
+    get_value_from_frame(parameter, frame)
   
   Keyframe:
     value: DataType
