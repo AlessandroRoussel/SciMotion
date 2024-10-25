@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Dict
 
-from datatypes import DataTypeName
+from datatypes.datatype_name import DataTypeName
 from utils.singleton import Singleton
 from editing.entities.effect import Effect
 from editing.entities.effect_instance import EffectInstance
@@ -45,6 +45,8 @@ class EffectService(metaclass=Singleton):
                     _effect = self.create_effect_from_data(_glsl_code,
                                                            _json_data)
                     _repository[_unique_name] = _effect
+                    print(f"Loaded effect '{_effect.get_title()}' "
+                          f"in repository")
 
     def create_effect_from_data(self,
                                 glsl_code: str,
@@ -77,16 +79,16 @@ class EffectService(metaclass=Singleton):
                     ValueError(f"Trying to create parameter #{_param_count}"
                                f"from effect '{_title}' with illicit data "
                                f"type '{_data_type_name}'")
-                _data_type = DataTypeName[_data_type_name]
+                _data_type = DataTypeName[_data_type_name].value
 
-                _title = ""
+                _param_title = ""
                 _min_value = None
                 _max_value = None
                 _default_value = None
                 _accepts_keyframes = True
 
                 if "title" in _param:
-                    _title = _param["title"]
+                    _param_title = _param["title"]
                 if "min_value" in _param:
                     _min_value = _data_type(_param["min_value"])
                 if "max_value" in _param:
@@ -99,7 +101,7 @@ class EffectService(metaclass=Singleton):
                 _parameter_template = ParameterTemplate(
                     _uniform_name,
                     _data_type,
-                    title=_title,
+                    title=_param_title,
                     default_value=_default_value,
                     min_value=_min_value,
                     max_value=_max_value,
