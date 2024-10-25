@@ -8,6 +8,7 @@ floating point format. It is stored as a numpy float32 4D vector.
 from typing import Union, Tuple, List
 
 import numpy as np
+from OpenGL import GL
 
 from datatypes.ndarray import NDArray
 
@@ -39,6 +40,14 @@ class Color(NDArray):
                 super().__init__(*values, dtype=np.float32, shape=4)
         else:
             super().__init__(*values, dtype=np.float32, shape=4)
+
+    def send_to_opengl(self, location: GL.GLint):
+        """Set an OpenGL uniform with this value."""
+        GL.glUniform4f(location,
+                       self._value[0],
+                       self._value[1],
+                       self._value[2],
+                       self._value[3])
 
 
 Color.TRANSPARENT = Color(0, 0, 0, 0)

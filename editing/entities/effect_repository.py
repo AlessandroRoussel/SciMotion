@@ -15,8 +15,12 @@ from editing.entities.effect import Effect
 class EffectRepository(metaclass=Singleton):
     """Repository containing all the effects loaded in the application."""
 
-    _repository: Dict[int: Effect]
+    _repository: Dict[str, Effect]  # Dict[unique name: effect]
 
     def __init__(self):
         # TODO : load configuration if needed
         self._repository = dict()
+
+    def get_repository(self):
+        """Retrieve a reference to the repository dictionary."""
+        return self._repository

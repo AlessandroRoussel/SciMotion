@@ -14,9 +14,9 @@ from editing.entities.parameter import Parameter
 class EffectInstance:
     """Represents an instance of an Effect applied to a Layer."""
 
-    _effect_id: int
-    _parameter_dict: Dict[str: Parameter]   # Dict[uniform name: parameter]
+    _effect_unique_name: str
+    _parameter_dict: Dict[str, Parameter]   # Dict[uniform name: parameter]
 
-    def __init__(self, effect_id: int):
-        self._effect_id = effect_id
+    def __init__(self, effect_unique_name: str):
+        self._effect_unique_name = effect_unique_name
         self._parameter_dict = dict()

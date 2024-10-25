@@ -1,9 +1,8 @@
 """
 Represents a property that can vary over time.
 
-A Parameter is an object used within an Effect or a Layer which
-stores a value of a certain DataType, has default, minimum, and
-maximum values and can be keyframed for animations.
+A Parameter is an object which stores a value of a certain DataType, has
+default, minimum, and maximum values and can be keyframed for animations.
 """
 
 from typing import List, Type

@@ -18,6 +18,7 @@ class AnimationService(metaclass=Singleton):
     """Service concerning animation in general."""
 
     def __init__(self):
+        # TODO : load configuration if needed
         pass
 
     def add_keyframe(self, parameter: Parameter, keyframe: Keyframe):
