@@ -8,14 +8,14 @@ maximum values and can be keyframed for animations.
 
 from typing import List, Type
 
-from datatypes.entities.datatype import DataType
+from datatypes.datatype import DataType
 from editing.entities.keyframe import Keyframe
 
 
 class Parameter:
     """Represents a property that can vary over time."""
 
-    title: str
+    _title: str
     _constant: bool
     _datatype: Type[DataType]
     _current_value: DataType
@@ -31,7 +31,7 @@ class Parameter:
                  default_value: DataType = None,
                  min_value: DataType = None,
                  max_value: DataType = None):
-        self.title = title
+        self._title = title
         self._datatype = datatype
         self._constant = constant
         if default_value is None:
@@ -43,6 +43,7 @@ class Parameter:
         self._current_value = self._default_value
 
         self._keyframe_list = []
+        self._keyframe_at_frame_dict = dict()
 
     def get_current_value(self) -> DataType:
         """Return the current value stored in the Parameter."""
@@ -51,3 +52,7 @@ class Parameter:
     def set_current_value(self, value: DataType):
         """Change the current value stored in the Parameter."""
         self._current_value = value.clip(self._min_value, self._max_value)
+
+    def get_keyframe_list(self):
+        """Retrun a reference to the keyframe list."""
+        return self._keyframe_list

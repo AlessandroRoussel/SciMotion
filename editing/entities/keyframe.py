@@ -8,7 +8,7 @@ used to create transitions between different values.
 
 from enum import Enum
 
-from datatypes.entities.datatype import DataType
+from datatypes.datatype import DataType
 
 
 class KeyframeType(Enum):
@@ -34,3 +34,11 @@ class Keyframe:
         self._frame = frame
         self._value = value
         self._interpolation = interpolation
+
+    def get_frame(self):
+        """Return the frame number."""
+        return self._frame
+
+    def get_value(self):
+        """Return the value."""
+        return self._value
