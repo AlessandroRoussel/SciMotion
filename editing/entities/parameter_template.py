@@ -46,3 +46,27 @@ class ParameterTemplate:
         self._min_value = min_value
         self._max_value = max_value
         self._accepts_keyframes = accepts_keyframes
+
+    def get_title(self) -> str:
+        """Return title."""
+        return self._title
+
+    def get_accepts_keyframes(self) -> bool:
+        """Return title."""
+        return self._accepts_keyframes
+
+    def get_data_type(self) -> Type[DataType]:
+        """Return title."""
+        return self._data_type
+
+    def get_default_value(self) -> DataType:
+        """Return title."""
+        return self._default_value
+
+    def get_min_value(self) -> DataType:
+        """Return title."""
+        return self._min_value
+
+    def get_max_value(self) -> DataType:
+        """Return title."""
+        return self._max_value

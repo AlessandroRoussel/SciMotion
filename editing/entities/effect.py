@@ -24,7 +24,7 @@ class Effect:
     """Represents an effect that the user can apply to layers."""
 
     _title: str
-    _flags: Set[str]
+    _flags: Set[EffectFlags]
     _parameter_template_list: List[ParameterTemplate]
     _shader_program: ShaderProgram
 
@@ -34,6 +34,15 @@ class Effect:
                  flags: Set[str] = set(),
                  parameter_template_list: List[ParameterTemplate] = []):
         self._title = title
-        self._flags = flags
         self._parameter_template_list = parameter_template_list
         self._shader_program = shader_program
+        self._flags = set()
+        for _flag in flags:
+            if hasattr(EffectFlags, _flag):
+                self._flags.add(EffectFlags[_flag])
+            else:
+                raise ValueError(f"Unkown effect flag '{_flag}'")
+
+    def get_parameter_template_list(self) -> List[ParameterTemplate]:
+        """Retrieve the list of parameter templates."""
+        return self._parameter_template_list
