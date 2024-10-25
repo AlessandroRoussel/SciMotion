@@ -16,7 +16,7 @@ class Parameter:
     """Represents a property that can vary over time."""
 
     _title: str
-    _constant: bool
+    _accepts_keyframes: bool
     _datatype: Type[DataType]
     _current_value: DataType
     _default_value: DataType
@@ -26,14 +26,14 @@ class Parameter:
 
     def __init__(self,
                  title: str = "",
-                 constant: bool = False,
+                 accepts_keyframes: bool = True,
                  datatype: Type[DataType] = DataType,
                  default_value: DataType = None,
                  min_value: DataType = None,
                  max_value: DataType = None):
         self._title = title
         self._datatype = datatype
-        self._constant = constant
+        self._accepts_keyframes = accepts_keyframes
         if default_value is None:
             self._default_value = datatype.default()
         else:
@@ -53,6 +53,10 @@ class Parameter:
         """Change the current value stored in the Parameter."""
         self._current_value = value.clip(self._min_value, self._max_value)
 
-    def get_keyframe_list(self):
-        """Retrun a reference to the keyframe list."""
+    def get_keyframe_list(self) -> List[Keyframe]:
+        """Return a reference to the keyframe list."""
         return self._keyframe_list
+
+    def accepts_keyframes(self) -> bool:
+        """Tell if the parameter accepts keyframes."""
+        return self._accepts_keyframes

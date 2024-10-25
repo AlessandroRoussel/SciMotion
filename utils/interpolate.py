@@ -25,7 +25,7 @@ class Interpolate:
         """Perform linear interpolation.
 
         Interpolates between values a and b,
-        using an interpolation factor t from 0 to 1.
+        using interpolation factor 0 < t < 1.
         """
         _t = min(max(0, t), 1)
         return a*(1-_t) + b*_t
@@ -35,71 +35,62 @@ class Interpolate:
         """Perform cubic bezier interpolation.
 
         Interpolates between values v0 and v3,
-        with Bezier control points v1 and v2,
-        using a parametric interpolation
-        factor t from 0 to 1.
+        with Bezier control values v1 and v2,
+        using interpolation factor 0 < t < 1.
         """
         _t = min(max(0, t), 1)
-        return (v0 + (v1-v0)*(3*_t*(1-_t)**2)
-                + (v2-v0)*(3*_t**2*(1-_t)) + (v3-v0)*_t**3)
+        return (v0*(1-_t)**3 + v1*(3*_t*(1-_t)**2)
+                + v2*(3*_t**2*(1-_t)) + v3*_t**3)
 
     @staticmethod
-    def non_parametric_cubic_bezier(x0: float,
-                                    x1: float,
-                                    x2: float,
-                                    x3: float,
-                                    y0,
-                                    y1,
-                                    y2,
-                                    y3,
-                                    x: float):
-        """Perform non-parametric cubic bezier interpolation.
+    def cubic_bezier_2d_handles(y0,
+                                y1,
+                                y2,
+                                y3,
+                                t1: float,
+                                t2: float,
+                                t: float):
+        """Perform cubic bezier interpolation with 2D handles.
 
-        Interpolates between values y0 and y3 at times x0 and x3,
-        with Bezier control points y1 and y2 at times x1 and x2,
-        using a non-parametric interpolation at time x.
+        Interpolates between values y0 and y3,
+        with 2D Bezier control points (t1,y1) and (t2,y2),
+        using interpolation factor 0 < t < 1.
 
         Requirements:
-            x0 < x3
-            x0 <= x1 <= x3
-            x0 <= x2 <= x3
-            x0 <= x <= x3
+            0 <= t1 <= 1
+            0 <= t2 <= 1
         """
-        if x <= x0:
-            return y0
-        if x >= x3:
-            return y3
-        if x0 == x3:
-            raise ValueError("TemporalCubicBezier error: x0 == x3")
-        _X = (x-x0)/(x3-x0)
-        _a = 1+3*(x1-x2)/(x3-x0)
-        _b = (x2+x0-2*x1)/(x3-x0)
-        _c = (x1-x0)/(x3-x0)
-        _t = 0
+        _t = min(max(0, t), 1)
+        _t1 = min(max(0, t1), 1)
+        _t2 = min(max(0, t2), 1)
+        _a = 1 + 3*(_t1-_t2)
+        _b = _t2 - 2*_t1
+
+        _T = 0
         if _a == 0:
             if _b == 0:
-                if _c == 0:
+                if _t1 == 0:
                     return y0
                 else:
-                    _t = _X/3/_c
-            elif _c**2+4*_b*_X/3 >= 0:
-                _t = (-_c + np.sqrt(_c**2+4*_b*_X/3))/2/_b
+                    _T = _t/3/_t1
+            elif _t1**2+4*_b*_t/3 >= 0:
+                _T = (-_t1 + np.sqrt(_t1**2+4*_b*_t/3))/2/_b
         else:
-            _d = _b**2-_a*_c
-            _f = 2*_b**3-3*_a*_b*_c-_a**2*_X
+            _d = _b**2-_a*_t1
+            _f = 2*_b**3-3*_a*_b*_t1-_a**2*_t
             if _d == 0:
-                _t = -(_b+np.sign(_f)*abs(_f)**(1/3))/_a
+                _T = -(_b+np.sign(_f)*abs(_f)**(1/3))/_a
             elif _f**2 >= 4*_d**3:
                 _g = (_f+np.sqrt(_f**2-4*_d**3))/2
                 _g = np.sign(_g)*abs(_g)**(1/3)
-                _t = -(_b+_g+_d/_g)/_a
+                _T = -(_b+_g+_d/_g)/_a
             else:
-                _t = -(_b+2*np.sqrt(_d)*np.cos(
+                _T = -(_b+2*np.sqrt(_d)*np.cos(
                     np.arccos(_f/2/_d**(3/2))/3))/_a
-                if _t < 0 or _t > 1:
-                    _t = -(_b+2*np.sqrt(_d)*np.cos(
+                if _T < 0 or _T > 1:
+                    _T = -(_b+2*np.sqrt(_d)*np.cos(
                         2*np.pi / 3 + np.arccos(_f/2/_d**(3/2))/3))/_a
-                if _t < 0 or _t > 1:
-                    _t = -(_b+2*np.sqrt(_d)*np.cos(
+                if _T < 0 or _T > 1:
+                    _T = -(_b+2*np.sqrt(_d)*np.cos(
                         4*np.pi / 3 + np.arccos(_f/2/_d**(3/2))/3))/_a
-        return Interpolate.cubic_bezier(y0, y1, y2, y3, _t)
+        return Interpolate.cubic_bezier(y0, y1, y2, y3, _T)

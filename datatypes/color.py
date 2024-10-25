@@ -5,8 +5,9 @@ This module defines the Color DataType, which represents a color in rgba
 floating point format. It is stored as a numpy float32 4D vector.
 """
 
-import numpy as np
 from typing import Union, Tuple, List
+
+import numpy as np
 
 from datatypes.ndarray import NDArray
 

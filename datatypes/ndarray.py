@@ -6,8 +6,9 @@ of numbers. It is stored as a numpy array and can be of a defined
 numpy dtype and shape.
 """
 
-import numpy as np
 from typing import Union, Tuple, Type, Any, Callable, Self
+
+import numpy as np
 
 from datatypes.datatype import DataType
 
