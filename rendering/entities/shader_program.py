@@ -17,7 +17,7 @@ class ShaderProgram:
     _code: str
     _compiled: bool
     _program: GL.GLuint
-    _uniform_locations: Dict[str: GL.GLint]
+    _uniform_locations: Dict[str, GL.GLint]
 
     def __init__(self, glsl_code: str):
         self._code = glsl_code
