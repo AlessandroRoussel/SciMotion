@@ -46,3 +46,7 @@ class Effect:
     def get_parameter_template_list(self) -> List[ParameterTemplate]:
         """Retrieve the list of parameter templates."""
         return self._parameter_template_list
+
+    def get_title(self) -> str:
+        """Retrieve effect title."""
+        return self._title
