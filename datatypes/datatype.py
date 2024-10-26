@@ -9,8 +9,6 @@ and can be combined with both instances and numeric values.
 
 from typing import Any, Callable, Self
 
-from OpenGL import GL
-
 
 class DataType:
     """Represents abstract data."""
@@ -58,11 +56,6 @@ class DataType:
         if max_value is not None:
             value = min(max_value._value, value)
         return self.__class__(value)
-
-    def send_to_opengl(self, location: GL.GLint):
-        """Set an OpenGL uniform with this value."""
-        raise NotImplementedError(f"Type {type(self).__name__} has no "
-                                  f"send_to_opengl method implemented.")
 
     @classmethod
     def default(cls):

@@ -16,10 +16,6 @@ class Interpolate:
     scalar multiplication * by a float number.
     """
 
-    # TODO : problem with angles when interpolating
-    # (tangents get changed with the modulo 2pi)
-    # different possible directions for animation
-
     @staticmethod
     def linear(a, b, t: float):
         """Perform linear interpolation.
