@@ -5,7 +5,7 @@ import numpy as np
 import configparser
 
 from editing.services.modifier_service import ModifierService
-from editing.entities.modifier_repository import ModifierRepository
+from editing.services.render_service import RenderService
 from rendering.entities.render_context import RenderContext
 
 config = configparser.ConfigParser()
@@ -19,12 +19,18 @@ config.read("config.cfg")
 
 ModifierService().load_modifiers_from_directory(Path("modifiers"))
 _context = RenderContext(0, 600, 500)
-_modifier = ModifierService().modifier_from_template("checkerboard")
-ModifierService().apply_modifier_to_render_context(_modifier, _context)
+
+_modifier1 = ModifierService().modifier_from_template("checkerboard")
+RenderService().apply_modifier_to_render_context(_modifier1, _context)
+
+_context.roll_textures()
+
+_modifier2 = ModifierService().modifier_from_template("unmultiply")
+RenderService().apply_modifier_to_render_context(_modifier2, _context)
 
 
 _modified_data = np.frombuffer(
-    _context._result_texture.read(), dtype=np.float32).reshape(
+    _context.get_dest_texture().read(), dtype=np.float32).reshape(
         (_context.get_height(), _context.get_width(), 4))
 plt.imshow(_modified_data)
 plt.show()

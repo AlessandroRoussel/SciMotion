@@ -75,7 +75,5 @@ def _apply(_render_context, color_a, color_b, cell_size, center):
     compute_shader["cell_size"] = cell_size
     compute_shader["center"] = center
 
-    dest_texture = gl_context.texture((width, height), 4, dtype="f4")
-    dest_texture.bind_to_image(0, read=False, write=True)
-    _render_context.set_result_texture(dest_texture)
+    _render_context.get_dest_texture().bind_to_image(0, read=False, write=True)
     compute_shader.run(width, height, 1)
