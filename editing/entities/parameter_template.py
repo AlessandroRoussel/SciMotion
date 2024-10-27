@@ -11,7 +11,7 @@ as well as information about the parameter for the user.
 
 from typing import Type
 
-from datatypes.datatype import DataType
+from data_types.data_type import DataType
 
 
 class ParameterTemplate:

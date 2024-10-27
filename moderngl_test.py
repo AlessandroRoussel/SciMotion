@@ -14,8 +14,8 @@ layout(rgba32f, binding = 0) uniform image2D img_output;
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
     vec4 color = imageLoad(img_output, pos);
-    color.rgb = 1.0 - color.rgb;
-    color.r = float(pos.x/512.);
+    color.rgb = color.rgb;
+    color.a = 1.;
     imageStore(img_output, pos, color);
 }
 """
@@ -23,7 +23,7 @@ _compute_shader = _context.compute_shader(_compute_shader_source)
 
 _width, _height = 512, 512
 _data = np.zeros(shape=(_width, _height, 4)).astype("f4")
-_texture = _context.texture((_width, _height), 4, data=_data.tobytes(), dtype="f4")
+_texture = _context.texture((_width, _height), 4, dtype="f4")
 _texture.bind_to_image(0, read=True, write=True)
 
 _workgroup_size_x = (_width + 15) // 16

@@ -7,12 +7,12 @@ class that a Parameter object can use.
 
 from enum import Enum
 
-from datatypes.number import Number
-from datatypes.vector2 import Vector2
-from datatypes.vector3 import Vector3
-from datatypes.integer import Integer
-from datatypes.boolean import Boolean
-from datatypes.color import Color
+from data_types.number import Number
+from data_types.vector2 import Vector2
+from data_types.vector3 import Vector3
+from data_types.integer import Integer
+from data_types.boolean import Boolean
+from data_types.color import Color
 
 
 class DataTypeName(Enum):

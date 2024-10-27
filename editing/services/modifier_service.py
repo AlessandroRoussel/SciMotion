@@ -13,12 +13,13 @@ import importlib.util
 import inspect
 
 from utils.singleton import Singleton
-from datatypes.datatype_name import DataTypeName
+from data_types.data_type_name import DataTypeName
 from editing.entities.modifier_template import ModifierTemplate, ModifierFlags
 from editing.entities.modifier_repository import ModifierRepository
 from editing.entities.parameter_template import ParameterTemplate
 from editing.entities.parameter import Parameter
 from editing.entities.modifier import Modifier
+from rendering.entities.render_context import RenderContext
 
 
 class ModifierService(metaclass=Singleton):
@@ -89,7 +90,7 @@ class ModifierService(metaclass=Singleton):
         if not isinstance(_parameters_info, list):
             raise TypeError(f"Attribute '_parameters' in modifier "
                             f"'{_name_id}' should be a list of dict.")
-        _parameter_template_list = self.create_parameter_list(
+        _parameter_template_list = self._create_parameter_list(
             _parameters_info, modifier_name_id=_name_id)
 
         # Retrieve _apply function
@@ -100,9 +101,9 @@ class ModifierService(metaclass=Singleton):
         if not callable(_apply_function):
             raise TypeError(f"Attribute '_apply' in modifier "
                             f"'{_name_id}' should be a function.")
-        self.inspect_apply_signature(_apply_function,
-                                     _parameter_template_list,
-                                     modifier_name_id=_name_id)
+        self._inspect_apply_signature(_apply_function,
+                                      _parameter_template_list,
+                                      modifier_name_id=_name_id)
 
         # Return name id and modifier template
         _modifier_template = ModifierTemplate(
@@ -110,10 +111,10 @@ class ModifierService(metaclass=Singleton):
             parameter_template_list=_parameter_template_list)
         return _name_id, _modifier_template
 
-    def create_parameter_list(self,
-                              info_list: list[dict],
-                              modifier_name_id: str = ""
-                              ) -> list[ParameterTemplate]:
+    def _create_parameter_list(self,
+                               info_list: list[dict],
+                               modifier_name_id: str = ""
+                               ) -> list[ParameterTemplate]:
         """Create a list of ParameterTemplate from a list of dict."""
         _parameter_template_list = []
         _param_count = 0
@@ -184,10 +185,10 @@ class ModifierService(metaclass=Singleton):
             _param_count += 1
         return _parameter_template_list
 
-    def inspect_apply_signature(self,
-                                apply_function: Callable,
-                                template_list: list[ParameterTemplate],
-                                modifier_name_id: str = ""):
+    def _inspect_apply_signature(self,
+                                 apply_function: Callable,
+                                 template_list: list[ParameterTemplate],
+                                 modifier_name_id: str = ""):
         """Check whether the signature of an '_apply' function is valid."""
         _signature = inspect.signature(apply_function)
         _signature_parameters = list(_signature.parameters.values())
@@ -219,14 +220,12 @@ class ModifierService(metaclass=Singleton):
         _template = _repository[modifier_name_id]
         _parameter_list = []
         for _parameter_template in _template.get_parameter_template_list():
-            _title = _parameter_template.get_title()
             _accepts_keyframes = _parameter_template.get_accepts_keyframes()
             _data_type = _parameter_template.get_data_type()
             _default_value = _parameter_template.get_default_value()
             _min_value = _parameter_template.get_min_value()
             _max_value = _parameter_template.get_max_value()
-            _parameter = Parameter(title=_title,
-                                   accepts_keyframes=_accepts_keyframes,
+            _parameter = Parameter(accepts_keyframes=_accepts_keyframes,
                                    data_type=_data_type,
                                    default_value=_default_value,
                                    min_value=_min_value,
@@ -234,3 +233,16 @@ class ModifierService(metaclass=Singleton):
             _parameter_list.append(_parameter)
         _modifier = Modifier(modifier_name_id, _parameter_list)
         return _modifier
+
+    def apply_modifier_to_render_context(self,
+                                         modifier: Modifier,
+                                         context: RenderContext):
+        """Execute the action of a Modifier on a RenderContext."""
+        _name_id = modifier.get_template_id()
+        _modifier_template = ModifierRepository().get_template(_name_id)
+        _function = _modifier_template.get_apply_function()
+        _arguments = []
+        for _parameter in modifier.get_parameter_list():
+            _raw_data = _parameter.get_current_value()
+            _arguments.append(_raw_data.get_value())
+        _function(context, *_arguments)

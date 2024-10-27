@@ -22,3 +22,10 @@ class ModifierRepository(metaclass=Singleton):
     def get_repository(self):
         """Retrieve a reference to the repository dictionary."""
         return self._repository
+
+    def get_template(self, name_id: str) -> ModifierTemplate:
+        """Retrieve a ModifierTemplate based on its name id."""
+        if name_id not in self._repository:
+            raise KeyError(f"Modifier '{name_id}' does not "
+                           f"exist in the repository.")
+        return self._repository[name_id]

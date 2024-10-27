@@ -9,7 +9,7 @@ keyframing, interpolating between keyframes...
 from typing import Union
 
 from utils.singleton import Singleton
-from datatypes.datatype import DataType
+from data_types.data_type import DataType
 from editing.entities.parameter import Parameter
 from editing.entities.keyframe import Keyframe
 

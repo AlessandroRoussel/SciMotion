@@ -7,7 +7,7 @@ default, minimum, and maximum values and can be keyframed for animations.
 
 from typing import Type
 
-from datatypes.datatype import DataType
+from data_types.data_type import DataType
 from editing.entities.keyframe import Keyframe
 
 
@@ -15,7 +15,7 @@ class Parameter:
     """Represents a property that can vary over time."""
 
     _accepts_keyframes: bool
-    _datatype: Type[DataType]
+    _data_type: Type[DataType]
     _current_value: DataType
     _default_value: DataType
     _min_value: DataType
@@ -24,14 +24,14 @@ class Parameter:
 
     def __init__(self,
                  accepts_keyframes: bool = True,
-                 datatype: Type[DataType] = DataType,
+                 data_type: Type[DataType] = DataType,
                  default_value: DataType = None,
                  min_value: DataType = None,
                  max_value: DataType = None):
-        self._datatype = datatype
+        self._data_type = data_type
         self._accepts_keyframes = accepts_keyframes
         if default_value is None:
-            self._default_value = datatype.default()
+            self._default_value = data_type.default()
         else:
             self._default_value = default_value
         self._min_value = min_value

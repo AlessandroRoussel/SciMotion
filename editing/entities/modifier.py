@@ -13,11 +13,19 @@ from editing.entities.parameter import Parameter
 class Modifier:
     """Represents an instance of the interface for a Modifier."""
 
-    _modifier_template_id: str  # template's name id in the repository
+    _template_id: str  # template's name id in the repository
     _parameter_list: list[Parameter]
 
     def __init__(self,
-                 modifier_template_id: str,
+                 template_id: str,
                  parameter_list: list[Parameter] = []):
-        self._modifier_template_id = modifier_template_id
+        self._template_id = template_id
         self._parameter_list = parameter_list
+
+    def get_template_id(self) -> str:
+        """Return the parent ModifierTemplate name id."""
+        return self._template_id
+
+    def get_parameter_list(self) -> list[Parameter]:
+        """Return the list of parameters."""
+        return self._parameter_list

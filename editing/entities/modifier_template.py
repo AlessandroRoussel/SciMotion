@@ -44,3 +44,7 @@ class ModifierTemplate:
     def get_title(self) -> str:
         """Retrieve effect title."""
         return self._title
+
+    def get_apply_function(self) -> Callable:
+        """Retrieve the modifier apply function."""
+        return self._apply_function

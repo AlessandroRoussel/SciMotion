@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Self
 
 from utils.interpolate import Interpolate
-from datatypes.datatype import DataType
+from data_types.data_type import DataType
 
 
 class KeyframeType(Enum):
