@@ -1,13 +1,12 @@
 """
-Represents a template for a parameter in an effect.
+Represents a template for a parameter in a Modifier.
 
 The ParameterTemplate class describes a template for the Parameter
-that must be created when the user applies an Effect to a layer. It
-not only contains information on the type of Parameter (data type,
-default, minimum and maximum values...) but also a specific
-uniform name used by the rendering pipeline to identify,
-the parameter, and information about how the GUI should
-display the parameter for the user.
+that must be created when the user applies a Modifier to a layer.
+It contains information on the type of Parameter (DataType,
+default value, minimum and maximum values...) but also a
+unique name_id used to pass values to the rendering pipeline,
+as well as information about the parameter for the user.
 """
 
 from typing import Type
@@ -16,30 +15,30 @@ from datatypes.datatype import DataType
 
 
 class ParameterTemplate:
-    """Represents an effect that the user can apply to layers."""
+    """Represents a template for a parameter in a Modifier."""
 
     # Unique identifier
-    _uniform_name: str
+    _name_id: str
 
     # Display properties
     _title: str
 
     # Parameter properties
+    _accepts_keyframes: bool
     _data_type: Type[DataType]
     _default_value: DataType
     _min_value: DataType
     _max_value: DataType
-    _accepts_keyframes: bool
 
     def __init__(self,
-                 uniform_name: str,
+                 name_id: str,
                  data_type: Type[DataType],
                  title: str = "",
                  default_value: DataType = None,
                  min_value: DataType = None,
                  max_value: DataType = None,
                  accepts_keyframes: bool = True):
-        self._uniform_name = uniform_name
+        self._name_id = name_id
         self._title = title
         self._data_type = data_type
         self._default_value = default_value
@@ -47,26 +46,30 @@ class ParameterTemplate:
         self._max_value = max_value
         self._accepts_keyframes = accepts_keyframes
 
+    def get_name_id(self) -> str:
+        """Retrieve the name id."""
+        return self._name_id
+
     def get_title(self) -> str:
-        """Return title."""
+        """Retrieve the title."""
         return self._title
 
     def get_accepts_keyframes(self) -> bool:
-        """Return title."""
+        """Retrieve the keyframability."""
         return self._accepts_keyframes
 
     def get_data_type(self) -> Type[DataType]:
-        """Return title."""
+        """Retrieve the data type."""
         return self._data_type
 
     def get_default_value(self) -> DataType:
-        """Return title."""
+        """Retrieve the default value."""
         return self._default_value
 
     def get_min_value(self) -> DataType:
-        """Return title."""
+        """Retrieve the minimum value."""
         return self._min_value
 
     def get_max_value(self) -> DataType:
-        """Return title."""
+        """Retrieve the maximum value."""
         return self._max_value

@@ -7,7 +7,7 @@ supports addition, subtraction, multiplication, and division,
 and can be combined with both instances and numeric values.
 """
 
-from typing import Any, Callable, Self
+from typing import Any, Self
 
 
 class DataType:
@@ -18,35 +18,29 @@ class DataType:
     def __init__(self, value):
         self._value = value
 
-    def __add__(self, other) -> Self:
-        """Define the + operator."""
-        return self._combine(other, self.__class__._add)
-
-    def __sub__(self, other) -> Self:
-        """Define the - operator."""
-        return self._combine(other, self.__class__._sub)
-
-    def __mul__(self, other) -> Self:
-        """Define the * operator."""
-        return self._combine(other, self.__class__._mul)
-
-    def __truediv__(self, other) -> Self:
-        """Define the / operator."""
-        return self._combine(other, self.__class__._div)
-
-    def _combine(self,
-                 other,
-                 function: Callable[[Any, Any], Any]
-                 ) -> Self:
-        """Combine this object with another using a specified function."""
-        if isinstance(other, self.__class__):
-            return self.__class__(function(self._value, other._value))
-        else:
-            return self.__class__(function(self._value, other))
-
     def __repr__(self):
         """Return a string representation of the DataType."""
         return f"{type(self).__name__}({self._value})"
+
+    def __add__(self, other: Self) -> Self:
+        """Add two objects of this data type."""
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Impossible to add {self} and {other}.")
+        return self.__class__(self._value + other._value)
+
+    def __sub__(self, other: Self) -> Self:
+        """Subtract two objects of this data type."""
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Impossible to subtract {self} and {other}.")
+        return self.__add__(other.__mul__(-1))
+
+    def __mul__(self, factor: float) -> Self:
+        """Multiply by a float factor."""
+        return self.__class__(self._value * factor)
+
+    def __truediv__(self, factor: float) -> Self:
+        """Divide by a float factor."""
+        return self.__mul__(1/factor)
 
     def clip(self, min_value: Self, max_value: Self) -> Self:
         """Return a value clipped between min and max."""
@@ -61,19 +55,3 @@ class DataType:
     def default(cls):
         """Return an instance with default value."""
         return cls(0)
-
-    @staticmethod
-    def _add(a, b):
-        return a + b
-
-    @staticmethod
-    def _sub(a, b):
-        return a - b
-
-    @staticmethod
-    def _mul(a, b):
-        return a * b
-
-    @staticmethod
-    def _div(a, b):
-        return a / b

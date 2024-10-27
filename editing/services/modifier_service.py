@@ -1,128 +1,224 @@
 """
-Service concerning effects in general.
+Service concerning modifiers in general.
 
-The EffectService class defines services within the editing
-package, concerning effects that the user can apply. This
-includes loading and managing the effect repository,
-adding effects to layers...
+The ModifierService class defines services within the editing
+package, concerning modifiers that the user can apply. This
+includes loading and managing the modifier repository,
+adding modifiers to layers...
 """
 
-import json
+from typing import Callable
 from pathlib import Path
-from typing import Dict
+import importlib.util
+import inspect
 
-from datatypes.datatype_name import DataTypeName
 from utils.singleton import Singleton
-from editing.entities.effect import Effect
-from editing.entities.effect_instance import EffectInstance
-from editing.entities.effect_repository import EffectRepository
-from editing.entities.parameter import Parameter
+from datatypes.datatype_name import DataTypeName
+from editing.entities.modifier_template import ModifierTemplate, ModifierFlags
+from editing.entities.modifier_repository import ModifierRepository
 from editing.entities.parameter_template import ParameterTemplate
-from rendering.entities.compute_shader import ComputeShader
+from editing.entities.parameter import Parameter
+from editing.entities.modifier import Modifier
 
 
-class EffectService(metaclass=Singleton):
-    """Service concerning effects in general."""
+class ModifierService(metaclass=Singleton):
+    """Service concerning modifiers in general."""
+
+    _modifier_count = 0
 
     def __init__(self):
         # TODO : load configuration if needed
         pass
 
-    def load_effects_from_directory(self, directory: Path):
-        """Load all effects from a directory into the EffectRepository."""
+    def load_modifiers_from_directory(self, directory: Path):
+        """Load all modifiers from a directory into the ModifierRepository."""
         if not directory.is_dir():
-            raise ValueError(f"Trying to load effects from "
+            raise ValueError(f"Trying to load modifiers from "
                              f"invalid directory '{directory}'")
-        _repository = EffectRepository().get_repository()
-        for _glsl_file in directory.rglob("*.glsl"):
-            if _glsl_file.is_file():
-                _json_file = _glsl_file.with_suffix(".json")
-                if _json_file.is_file():
-                    _unique_name = _glsl_file.stem
-                    _glsl_code = _glsl_file.read_text()
-                    with _json_file.open("r") as _file:
-                        _json_data = json.load(_file)
-                    _effect = self.create_effect_from_data(_glsl_code,
-                                                           _json_data)
-                    _repository[_unique_name] = _effect
-                    print(f"Loaded effect '{_effect.get_title()}' "
-                          f"in repository")
+        _repository = ModifierRepository().get_repository()
+        for _py_file in directory.rglob("*.py"):
+            if _py_file.is_file():
+                _name_id, _template = self.load_modifier_from_file(_py_file)
+                if _name_id in _repository:
+                    raise KeyError(f"More than one modifier uses the "
+                                   f"name_id '{_name_id}'")
+                _repository[_name_id] = _template
+                print(f"Loaded modifier '{_name_id}' in repository")
 
-    def create_effect_from_data(self,
-                                glsl_code: str,
-                                json_data: Dict
-                                ) -> Effect:
-        """Load an effect given its glsl and json data."""
-        _compute_shader = ComputeShader(glsl_code)
-        _title = ""
-        _flags = set()
+    def load_modifier_from_file(self,
+                                py_file: Path
+                                ) -> tuple[str, ModifierTemplate]:
+        """Load a modifier given its python file."""
+        if not py_file.is_file():
+            raise ValueError(f"{py_file} is not a file")
+        if py_file.suffix != ".py":
+            raise ValueError(f"{py_file} is not a *.py file")
+
+        # Load the modifier as a python module
+        _spec = importlib.util.spec_from_file_location(
+            f"modifier_{self._modifier_count}", py_file)
+        _module = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_module)
+        self._modifier_count += 1
+
+        # Retrieve modifier attributes
+        _name_id = getattr(_module, "_name_id", None)
+        if _name_id is None:
+            raise AttributeError(f"Couldn't find attribute '_name_id' "
+                                 f"in '{py_file.name}'")
+        if not isinstance(_name_id, str):
+            raise TypeError(f"Attribute '_name_id' in '{py_file.name}' "
+                            f"should be a str.")
+
+        _title = getattr(_module, "_title", "")
+        if not isinstance(_title, str):
+            raise TypeError(f"Attribute '_title' in modifier "
+                            f"'{_name_id}' should be a str.")
+
+        _flags = getattr(_module, "_flags", [])
+        if not isinstance(_flags, list):
+            raise TypeError(f"Attribute '_flags' in modifier "
+                            f"'{_name_id}' should be a list of str.")
+        for _flag in _flags:
+            if not hasattr(ModifierFlags, _flag):
+                raise ValueError(f"Unkown flag '{_flag}' in "
+                                 f"modifier '{_name_id}'")
+
+        # Retrieve parameters templates
+        _parameters_info = getattr(_module, "_parameters", [])
+        if not isinstance(_parameters_info, list):
+            raise TypeError(f"Attribute '_parameters' in modifier "
+                            f"'{_name_id}' should be a list of dict.")
+        _parameter_template_list = self.create_parameter_list(
+            _parameters_info, modifier_name_id=_name_id)
+
+        # Retrieve _apply function
+        _apply_function = getattr(_module, "_apply", None)
+        if _apply_function is None:
+            raise AttributeError(f"Couldn't find '_apply' function "
+                                 f"in modifier '{_name_id}'")
+        if not callable(_apply_function):
+            raise TypeError(f"Attribute '_apply' in modifier "
+                            f"'{_name_id}' should be a function.")
+        self.inspect_apply_signature(_apply_function,
+                                     _parameter_template_list,
+                                     modifier_name_id=_name_id)
+
+        # Return name id and modifier template
+        _modifier_template = ModifierTemplate(
+            _apply_function, title=_title, flags=_flags,
+            parameter_template_list=_parameter_template_list)
+        return _name_id, _modifier_template
+
+    def create_parameter_list(self,
+                              info_list: list[dict],
+                              modifier_name_id: str = ""
+                              ) -> list[ParameterTemplate]:
+        """Create a list of ParameterTemplate from a list of dict."""
         _parameter_template_list = []
-        if "title" in json_data:
-            _title = json_data["title"]
-        if "flags" in json_data:
-            _flags = set(json_data["flags"])
-        if "parameters" in json_data:
-            _param_count = 0
-            for _param in json_data["parameters"]:
+        _param_count = 0
+        for _param_info in info_list:
 
-                if "uniform_name" not in _param:
-                    ValueError(f"Parameter #{_param_count} from effect "
-                               f"'{_title}' is missing a uniform_name")
-                _uniform_name = _param["uniform_name"]
+            if "name_id" not in _param_info:
+                AttributeError(f"Parameter #{_param_count} from modifier "
+                               f"'{modifier_name_id}' is missing 'name_id'")
+            _name_id = _param_info["name_id"]
+            if not isinstance(_name_id, str):
+                raise TypeError(f"Attribute 'name_id' of parameter "
+                                f"#{_param_count} from modifier "
+                                f"'{modifier_name_id}' should be a str.")
 
-                if "data_type" not in _param:
-                    ValueError(f"Parameter #{_param_count} from effect "
-                               f"'{_title}' is missing a data_type")
-                _data_type_name = _param["data_type"].upper()
+            if "data_type" not in _param_info:
+                AttributeError(f"Parameter #{_param_count} from modifier "
+                               f"'{modifier_name_id}' is missing 'data_type'")
+            if not isinstance(_param_info["data_type"], str):
+                raise TypeError(f"Attribute 'data_type' of parameter "
+                                f"#{_param_count} from modifier "
+                                f"'{modifier_name_id}' should be a str.")
+            _data_type_name = _param_info["data_type"].upper()
+            if not hasattr(DataTypeName, _data_type_name):
+                AttributeError(f"Parameter #{_param_count} from modifier "
+                               f"'{modifier_name_id}' has illicit 'data_type'"
+                               f": '{_data_type_name}'")
+            _data_type = DataTypeName[_data_type_name].value
 
-                if not hasattr(DataTypeName, _data_type_name):
-                    ValueError(f"Trying to create parameter #{_param_count}"
-                               f"from effect '{_title}' with illicit data "
-                               f"type '{_data_type_name}'")
-                _data_type = DataTypeName[_data_type_name].value
+            _param_title = ""
+            _min_value = None
+            _max_value = None
+            _default_value = None
+            _accepts_keyframes = True
 
-                _param_title = ""
-                _min_value = None
-                _max_value = None
-                _default_value = None
-                _accepts_keyframes = True
+            if "title" in _param_info:
+                _param_title = _param_info["title"]
+                if not isinstance(_param_title, str):
+                    raise TypeError(f"Attribute 'title' of parameter "
+                                    f"#{_param_count} from modifier "
+                                    f"'{modifier_name_id}' should be a str.")
 
-                if "title" in _param:
-                    _param_title = _param["title"]
-                if "min_value" in _param:
-                    _min_value = _data_type(_param["min_value"])
-                if "max_value" in _param:
-                    _max_value = _data_type(_param["max_value"])
-                if "default_value" in _param:
-                    _default_value = _data_type(_param["default_value"])
-                if "accepts_keyframes" in _param:
-                    _accepts_keyframes = _param["accepts_keyframes"]
+            if "min_value" in _param_info:
+                _min_value = _data_type(_param_info["min_value"])
 
-                _parameter_template = ParameterTemplate(
-                    _uniform_name,
-                    _data_type,
-                    title=_param_title,
-                    default_value=_default_value,
-                    min_value=_min_value,
-                    max_value=_max_value,
-                    accepts_keyframes=_accepts_keyframes
-                )
-                _parameter_template_list.append(_parameter_template)
-                _param_count += 1
-        return Effect(_compute_shader,
-                      _title,
-                      _flags,
-                      _parameter_template_list)
+            if "max_value" in _param_info:
+                _max_value = _data_type(_param_info["max_value"])
 
-    def instanciate_effect(self, effect_unique_name: str) -> EffectInstance:
-        """Create an EffectInstance based on an Effect in the repository."""
-        _repository = EffectRepository().get_repository()
-        if effect_unique_name not in _repository:
-            raise ValueError(f"Couldn't find {effect_unique_name}"
-                             f"in the effects repository.")
-        _effect = _repository[effect_unique_name]
+            if "default_value" in _param_info:
+                _default_value = _data_type(_param_info["default_value"])
+
+            if "accepts_keyframes" in _param_info:
+                _accepts_keyframes = _param_info["accepts_keyframes"]
+                if not isinstance(_accepts_keyframes, bool):
+                    raise TypeError(f"Attribute 'accepts_keyframes' of "
+                                    f"parameter #{_param_count} from modifier "
+                                    f"'{modifier_name_id}' should be a bool.")
+
+            _parameter_template = ParameterTemplate(
+                _name_id,
+                _data_type,
+                title=_param_title,
+                default_value=_default_value,
+                min_value=_min_value,
+                max_value=_max_value,
+                accepts_keyframes=_accepts_keyframes
+            )
+            _parameter_template_list.append(_parameter_template)
+            _param_count += 1
+        return _parameter_template_list
+
+    def inspect_apply_signature(self,
+                                apply_function: Callable,
+                                template_list: list[ParameterTemplate],
+                                modifier_name_id: str = ""):
+        """Check whether the signature of an '_apply' function is valid."""
+        _signature = inspect.signature(apply_function)
+        _signature_parameters = list(_signature.parameters.values())
+        if len(_signature_parameters) != 1+len(template_list):
+            _correct_signature = [
+                _template.get_name_id() for _template in template_list]
+            _correct_signature.insert(0, "_render_context")
+            raise TypeError(f"Signature mismatch: Arguments of '_apply' "
+                            f"function in modifier '{modifier_name_id}' "
+                            f" should be {_correct_signature}")
+        if _signature_parameters[0].name != "_render_context":
+            raise TypeError(f"Signature mismatch: First argument of '_apply' "
+                            f"function in modifier '{modifier_name_id}' "
+                            f" should be '_render_context'")
+        for _i in range(len(template_list)):
+            if (_signature_parameters[_i+1].name
+                    != template_list[_i].get_name_id()):
+                raise TypeError(f"Signature mismatch: Argument #{_i+1} of "
+                                f"'_apply' function in modifier "
+                                f"'{modifier_name_id}' should be "
+                                f"'{template_list[_i].get_name_id()}'")
+
+    def modifier_from_template(self, modifier_name_id: str) -> Modifier:
+        """Create a Modifier based on a ModifierTemplate in the repository."""
+        _repository = ModifierRepository().get_repository()
+        if modifier_name_id not in _repository:
+            raise ValueError(f"Couldn't find '{modifier_name_id}'"
+                             f"in the modifiers repository.")
+        _template = _repository[modifier_name_id]
         _parameter_list = []
-        for _parameter_template in _effect.get_parameter_template_list():
+        for _parameter_template in _template.get_parameter_template_list():
             _title = _parameter_template.get_title()
             _accepts_keyframes = _parameter_template.get_accepts_keyframes()
             _data_type = _parameter_template.get_data_type()
@@ -136,5 +232,5 @@ class EffectService(metaclass=Singleton):
                                    min_value=_min_value,
                                    max_value=_max_value)
             _parameter_list.append(_parameter)
-        _effect_instance = EffectInstance(effect_unique_name, _parameter_list)
-        return _effect_instance
+        _modifier = Modifier(modifier_name_id, _parameter_list)
+        return _modifier

@@ -1,21 +1,19 @@
 """
-Contains all the modifiers loaded in the app.
+Repository of all modifier templates loaded in the app.
 
-The ModifierRepository class acts as a centralized storage for managing and
-accessing all modifiers that are available within the application. It ensures
-that modifiers are loaded once and shared across the application.
+The ModifierRepository singleton class acts as a centralized storage for
+managing and accessing all modifier templates that are available within the
+application. It ensures that they are loaded once across the application.
 """
-
-from typing import Dict
 
 from utils.singleton import Singleton
 from editing.entities.modifier_template import ModifierTemplate
 
 
 class ModifierRepository(metaclass=Singleton):
-    """Repository containing all the modifiers loaded in the application."""
+    """Repository of all modifier templates loaded in the app."""
 
-    _repository: Dict[str, ModifierTemplate]  # Dict[unique name: interface]
+    _repository: dict[str, ModifierTemplate]  # dict[name id: template]
 
     def __init__(self):
         # TODO : load configuration if needed

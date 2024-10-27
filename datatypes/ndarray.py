@@ -6,7 +6,7 @@ of numbers. It is stored as a numpy array and can be of a defined
 numpy dtype and shape.
 """
 
-from typing import Union, Tuple, Type, Any, Callable, Self
+from typing import Union, Type, Any, Self
 
 import numpy as np
 
@@ -17,13 +17,13 @@ class NDArray(DataType):
     """Represents a N-dimensional array."""
 
     _value: np.ndarray
-    _shape: Tuple[int, ...]
+    _shape: tuple[int, ...]
     _dtype: Type
 
     def __init__(self,
-                 *values: Tuple[Any, ...],
+                 *values: tuple[Any, ...],
                  dtype: Type = None,
-                 shape: Union[Tuple[int, ...], int] = None):
+                 shape: Union[tuple[int, ...], int] = None):
         if shape is None:   # There is no mandatory shape.
             if dtype is None:   # There is no mandatory dtype.
                 self._value = np.array(values)
@@ -68,17 +68,6 @@ class NDArray(DataType):
             if self._value.shape != self._shape:
                 raise ValueError(f"Trying to create {type(self).__name__}"
                                  f" with illicit shape {self._value.shape}")
-
-    def _combine(self,
-                 other,
-                 function: Callable[[Any, Any], Any]
-                 ) -> Self:
-        """Combine this array with another using a specified function."""
-        if isinstance(other, self.__class__):
-            return self.__class__(function(self._value, other._value))
-        else:
-            return self.__class__(function(self._value,
-                                           np.array(other, dtype=self._dtype)))
 
     def clip(self, min_value: Self, max_value: Self) -> Self:
         """Return a value clipped between min and max."""

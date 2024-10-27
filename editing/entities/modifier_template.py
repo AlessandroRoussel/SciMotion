@@ -1,5 +1,5 @@
 """
-Represents the interface template of a Modifier.
+Represents a template for instanciating Modifier objects.
 
 The ModifierTemplate class contains a reference to a Modifier that the
 rendering pipeline can apply to a layer, and a list of ParameterTemplate
@@ -8,10 +8,9 @@ instanciating the interface, for the user to adjust.
 """
 
 from enum import Enum
-from typing import Set, List
+from typing import Callable
 
 from editing.entities.parameter_template import ParameterTemplate
-from rendering.entities.compute_shader import ComputeShader
 
 
 class ModifierFlags(Enum):
@@ -21,29 +20,24 @@ class ModifierFlags(Enum):
 
 
 class ModifierTemplate:
-    """Represents the interface template of a Modifier."""
+    """Represents a template for instanciating Modifier objects."""
 
     _title: str
-    _flags: Set[ModifierFlags]
-    _parameter_template_list: List[ParameterTemplate]
-    _compute_shader: ComputeShader
+    _flags: set[ModifierFlags]
+    _parameter_template_list: list[ParameterTemplate]
+    _apply_function: Callable
 
     def __init__(self,
-                 compute_shader: ComputeShader,
+                 apply_function: Callable,
                  title: str = "",
-                 flags: Set[str] = set(),
-                 parameter_template_list: List[ParameterTemplate] = []):
+                 flags: set[str] = set(),
+                 parameter_template_list: list[ParameterTemplate] = []):
         self._title = title
         self._parameter_template_list = parameter_template_list
-        self._compute_shader = compute_shader
-        self._flags = set()
-        for _flag in flags:
-            if hasattr(ModifierFlags, _flag):
-                self._flags.add(ModifierFlags[_flag])
-            else:
-                raise ValueError(f"Unkown effect flag '{_flag}'")
+        self._apply_function = apply_function
+        self._flags = flags
 
-    def get_parameter_template_list(self) -> List[ParameterTemplate]:
+    def get_parameter_template_list(self) -> list[ParameterTemplate]:
         """Retrieve the list of parameter templates."""
         return self._parameter_template_list
 

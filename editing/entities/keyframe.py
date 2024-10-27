@@ -7,7 +7,7 @@ used to create transitions between different values.
 """
 
 from enum import Enum
-from typing import Self, Tuple
+from typing import Self
 
 from utils.interpolate import Interpolate
 from datatypes.datatype import DataType
@@ -29,26 +29,26 @@ class Keyframe:
     _frame: int
     _value: DataType
     _keyframe_type: KeyframeType
-    _handle_left: Tuple[float, DataType]    # Tuple[influence, -offset]
-    _handle_right: Tuple[float, DataType]    # Tuple[influence, offset]
+    _left_handle: tuple[float, DataType]    # tuple[influence, -offset]
+    _right_handle: tuple[float, DataType]    # tuple[influence, offset]
 
     def __init__(self,
                  frame: int,
                  value: DataType,
                  keyframe_type: KeyframeType = KeyframeType.LINEAR,
-                 handle_left: Tuple[float, DataType] = None,
-                 handle_right: Tuple[float, DataType] = None):
+                 left_handle: tuple[float, DataType] = None,
+                 right_handle: tuple[float, DataType] = None):
         self._frame = frame
         self._value = value
         self._keyframe_type = keyframe_type
-        if handle_left is None:
-            self._handle_left = (1/3, value.default())
+        if left_handle is None:
+            self._left_handle = (1/3, value.default())
         else:
-            self._handle_left = handle_left
-        if handle_right is None:
-            self._handle_right = (1/3, value.default())
+            self._left_handle = left_handle
+        if right_handle is None:
+            self._right_handle = (1/3, value.default())
         else:
-            self._handle_right = handle_right
+            self._right_handle = right_handle
 
     def get_frame(self):
         """Return the frame number."""
@@ -82,7 +82,7 @@ class Keyframe:
                         KeyframeType.BEZIER_LEFT]
             and (_type_b in [KeyframeType.BEZIER_RIGHT,
                              KeyframeType.BEZIER])):
-            _handle_b = keyframe_b._handle_left
+            _handle_b = keyframe_b._left_handle
             _value_handle_b = _value_b - _handle_b[1]
             _t2 = 1 - _handle_b[0]
             return Interpolate.cubic_bezier_2d_handles(
@@ -94,7 +94,7 @@ class Keyframe:
             and (_type_b in [KeyframeType.CONSTANT,
                              KeyframeType.LINEAR,
                              KeyframeType.BEZIER_RIGHT])):
-            _handle_a = self._handle_right
+            _handle_a = self._right_handle
             _value_handle_a = _value_a + _handle_a[1]
             _t1 = _handle_a[0]
             return Interpolate.cubic_bezier_2d_handles(
@@ -105,8 +105,8 @@ class Keyframe:
                         KeyframeType.BEZIER]
             and (_type_b in [KeyframeType.BEZIER_LEFT,
                              KeyframeType.BEZIER])):
-            _handle_a = self._handle_right
-            _handle_b = keyframe_b._handle_left
+            _handle_a = self._right_handle
+            _handle_b = keyframe_b._left_handle
             _value_handle_a = _value_a + _handle_a[1]
             _value_handle_b = _value_b - _handle_b[1]
             _t1 = _handle_a[0]

@@ -23,7 +23,7 @@ Coding conventions:
   avoid built-in names
   modules: lowercase, short descriptive names, with no underscores
   sub_modules: with underscore
-  type hints and function annotations (e.g. def function(sequence: Dict[int: str]) -> int:)
+  type hints and function annotations (e.g. def function(sequence: dict[int: str]) -> int:)
   create CustomExceptionError classes using Error suffix
   define constants in SHOUTING_CASE at the module level
   2 blank lines before class, 1 before method
@@ -49,38 +49,15 @@ Coding conventions:
 Models:
   Layer:
     title: str
-    _position: Parameter(Float2)
-    _scale: Parameter(Float2)
-    _rotation: Parameter(Angle)
-    _opacity: Parameter(Float)
-    _effects_list: list[Effect] = list()
-  
-  Effect:
-    _shader_id: &Shader
-    _parameters: dict[str:Parameter]
-  
-  Parameter:
-    title: str = "Parameter"
-    _datatype: class
-    _constant: bool = False
-    _dimension: int = 1
-    _current_value: DataType = DataType.default()
-    _default_value: DataType = DataType.default()
-    _min_value: DataType = None
-    _max_value: DataType = None
-    _keyframe_list: list[Keyframe] = list()
-  
-    get_current_value(self) -> DataType
-    set_current_value(self, value: DataType)
-  
-  EffectsService:
-    add_effect(layer, shader)
-  
-  AnimationService:
-    add_keyframe(parameter, keyframe)
-    remove_keyframe(parameter, keyframe)
-    get_value_from_frame(parameter, frame)
-  
-  Keyframe:
-    value: DataType
-    frame: int
+
+  VisualLayer(Layer):
+    position: Parameter[Vector2]
+    scale: Parameter[Vector2]
+    rotation: Parameter[Number]
+    opacity: Parameter[Number]
+    blend_mode_id: BlendModeId
+
+  SolidLayer(VisualLayer):
+    width: int
+    height: int
+    color: Parameter[Color]
