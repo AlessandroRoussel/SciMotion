@@ -9,30 +9,26 @@ textures, and a ModernGL context for running shaders if needed...
 
 import moderngl
 
+from core.entities.glcontext import GLContext
+
 
 class RenderContext:
     """Provides useful information about the rendering context."""
 
-    _frame: int
     _width: int
     _height: int
-    _gl_context: moderngl.Context
     _src_texture: moderngl.Texture
     _dest_texture: moderngl.Texture
 
-    def __init__(self, _frame: int, _width: int, _height: int):
-        self._frame = _frame
-        self._width = _width
-        self._height = _height
-        self._gl_context = None
+    def __init__(self, width: int, height: int):
+        self._width = width
+        self._height = height
         self._src_texture = None
         self._dest_texture = None
 
     def get_gl_context(self) -> moderngl.Context:
-        """Return a moderngl standalone context."""
-        if self._gl_context is None:
-            self._gl_context = moderngl.create_context(standalone=True)
-        return self._gl_context
+        """Return the moderngl context."""
+        return GLContext().get_context()
 
     def get_width(self) -> int:
         """Return the width of the Layer."""
@@ -43,14 +39,14 @@ class RenderContext:
         return self._height
 
     def get_src_texture(self) -> moderngl.Texture:
-        """Return the destination OpenGL texture."""
+        """Return the destination moderngl texture."""
         if self._src_texture is None:
             self._src_texture = self.get_gl_context().texture(
                 (self.get_width(), self.get_height()), 4, dtype="f4")
         return self._src_texture
 
     def get_dest_texture(self) -> moderngl.Texture:
-        """Return the destination OpenGL texture."""
+        """Return the destination moderngl texture."""
         if self._dest_texture is None:
             self._dest_texture = self.get_gl_context().texture(
                 (self.get_width(), self.get_height()), 4, dtype="f4")
@@ -61,3 +57,7 @@ class RenderContext:
         self._src_texture = self.get_dest_texture()
         self._dest_texture = self.get_gl_context().texture(
             (self.get_width(), self.get_height()), 4, dtype="f4")
+
+    def set_src_texture(self, texture: moderngl.Texture):
+        """Set the source moderngl texture."""
+        self._src_texture = texture

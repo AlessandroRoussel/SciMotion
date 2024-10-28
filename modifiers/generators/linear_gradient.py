@@ -1,42 +1,42 @@
 """
-Generates a checkerboard pattern.
+Generates a linear gradient between two colors.
 
 This modifier takes two colors, a central position, and
 cell dimensions, and generates a checkerboard pattern.
 """
 
-_name_id = "checkerboard"
-_title = "Checkerboard"
+_name_id = "linear_gradient"
+_title = "Linear gradient"
 _flags = ["WRITEONLY"]
 _parameters = [
     {
         "name_id": "color_a",
         "title": "Color a",
         "data_type": "color",
-        "default_value": [.7, .7, .7]
+        "default_value": [1, 0, 0]
     },
     {
         "name_id": "color_b",
         "title": "Color b",
         "data_type": "color",
-        "default_value": [1, 1, 1]
+        "default_value": [0, 0, 1]
     },
     {
-        "name_id": "cell_size",
-        "title": "Cell size",
+        "name_id": "point_a",
+        "title": "Point a",
         "data_type": "vector2",
-        "default_value": [50, 50]
+        "default_value": [0, .5]
     },
     {
-        "name_id": "center",
-        "title": "Center",
+        "name_id": "point_b",
+        "title": "Point b",
         "data_type": "vector2",
-        "default_value": [0.5, 0.5]
+        "default_value": [1, .5]
     }
 ]
 
 
-def _apply(_render_context, color_a, color_b, cell_size, center):
+def _apply(_render_context, color_a, color_b, point_a, point_b):
     gl_context = _render_context.get_gl_context()
     width = _render_context.get_width()
     height = _render_context.get_height()
@@ -49,18 +49,28 @@ def _apply(_render_context, color_a, color_b, cell_size, center):
 
     uniform vec4 color_a;
     uniform vec4 color_b;
-    uniform vec2 center;
-    uniform vec2 cell_size;
+    uniform vec2 point_a;
+    uniform vec2 point_b;
 
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-        ivec2 dimensions = imageSize(img_output).xy;
+        vec2 dimensions = vec2(imageSize(img_output).xy);
 
-        vec2 xy = vec2(coords) - center * vec2(dimensions);
-        vec2 q = xy/cell_size - 2.*floor(xy/2./cell_size);
-        bool checker = q.x < 1. ^^ q.y < 1.;
+        vec2 uv = vec2(coords) / dimensions;
+        vec2 axis = (point_b - point_a) * dimensions;
+        vec2 vector = (uv - point_a) * dimensions;
 
-        vec4 color = mix(color_a, color_b, float(checker));
+        float t = 0.;
+        float norm2 = dot(axis, axis);
+        if(norm2 > 0.){
+            t = clamp(dot(axis, vector) / norm2, 0., 1.);
+        }else{
+            if(vector.x > 0.){
+                t = 1.;
+            }
+        }
+
+        vec4 color = mix(color_a, color_b, t);
         imageStore(img_output, coords, color);
     }
     """
@@ -68,8 +78,8 @@ def _apply(_render_context, color_a, color_b, cell_size, center):
     compute_shader = gl_context.compute_shader(glsl_code)
     compute_shader["color_a"] = color_a
     compute_shader["color_b"] = color_b
-    compute_shader["cell_size"] = cell_size
-    compute_shader["center"] = center
+    compute_shader["point_a"] = point_a
+    compute_shader["point_b"] = point_b
 
     _render_context.get_dest_texture().bind_to_image(0, read=False, write=True)
     compute_shader.run(width, height, 1)

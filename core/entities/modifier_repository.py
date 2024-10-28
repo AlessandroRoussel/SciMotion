@@ -7,7 +7,7 @@ application. It ensures that they are loaded once across the application.
 """
 
 from utils.singleton import Singleton
-from editing.entities.modifier_template import ModifierTemplate
+from core.entities.modifier_template import ModifierTemplate
 
 
 class ModifierRepository(metaclass=Singleton):

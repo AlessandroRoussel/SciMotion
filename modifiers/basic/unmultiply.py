@@ -33,11 +33,6 @@ def _apply(_render_context):
             out_color = vec4(src_color.rgb/max_rgb, src_color.a*max_rgb);
         }
 
-
-        out_color = vec4(src_color.rgb/2., 1.);
-
-
-
         imageStore(img_output, coords, out_color);
     }
     """

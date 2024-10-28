@@ -85,6 +85,8 @@ class NDArray(DataType):
 
     def get_value(self):
         """Return the value as a list."""
+        if self._shape == (1, ):
+            return self._value.tolist()[0]
         return self._value.tolist()
 
     @staticmethod

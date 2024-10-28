@@ -1,7 +1,7 @@
 """
 Service concerning modifiers in general.
 
-The ModifierService class defines services within the editing
+The ModifierService class defines services within the core
 package, concerning modifiers that the user can apply. This
 includes loading and managing the modifier repository,
 adding modifiers to layers...
@@ -14,11 +14,12 @@ import inspect
 
 from utils.singleton import Singleton
 from data_types.data_type_name import DataTypeName
-from editing.entities.modifier_template import ModifierTemplate, ModifierFlags
-from editing.entities.modifier_repository import ModifierRepository
-from editing.entities.parameter_template import ParameterTemplate
-from editing.entities.parameter import Parameter
-from editing.entities.modifier import Modifier
+from core.entities.modifier_template import ModifierTemplate, ModifierFlags
+from core.entities.modifier_repository import ModifierRepository
+from core.entities.parameter_template import ParameterTemplate
+from core.entities.parameter import Parameter
+from core.entities.modifier import Modifier
+from core.entities.layer import Layer
 
 
 class ModifierService(metaclass=Singleton):
@@ -232,3 +233,8 @@ class ModifierService(metaclass=Singleton):
             _parameter_list.append(_parameter)
         _modifier = Modifier(modifier_name_id, _parameter_list)
         return _modifier
+
+    def add_modifier_to_layer(self, modifier: Modifier, layer: Layer):
+        """Add a Modifier to a Layer."""
+        _modifier_list = layer.get_modifier_list()
+        _modifier_list.append(modifier)

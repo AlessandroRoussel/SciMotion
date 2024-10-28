@@ -10,7 +10,7 @@ instanciating the interface, for the user to adjust.
 from enum import Enum
 from typing import Callable
 
-from editing.entities.parameter_template import ParameterTemplate
+from core.entities.parameter_template import ParameterTemplate
 
 
 class ModifierFlags(Enum):

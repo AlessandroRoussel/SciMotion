@@ -16,14 +16,356 @@
 	"buffers":
 	[
 		{
-			"contents": "Searching 29 files for \"datatype\"\n\nE:\\Python\\SciMotion\\data_types\\boolean.py:\n    2  Represents a boolean.\n    3  \n    4: This module defines the Boolean DataType, which represents a\n    5  boolean. It is stored as a numpy bool array with 1 entry.\n    6  \"\"\"\n\nE:\\Python\\SciMotion\\data_types\\color.py:\n    2  Represents a color in RGBA floating point format.\n    3  \n    4: This module defines the Color DataType, which represents a color in rgba\n    5  floating point format. It is stored as a numpy float32 4D vector.\n    6  \"\"\"\n\nE:\\Python\\SciMotion\\data_types\\data_type.py:\n    1  \"\"\"\n    2: Represents an abstract DataType.\n    3  \n    4: This module defines the DataType abstract class, which provides\n    5  basic arithmetic operations for data of a specific type. The class\n    6  supports addition, subtraction, multiplication, and division,\n    .\n   11  \n   12  \n   13: class DataType:\n   14      \"\"\"Represents abstract data.\"\"\"\n   15  \n   ..\n   20  \n   21      def __repr__(self):\n   22:         \"\"\"Return a string representation of the DataType.\"\"\"\n   23          return f\"{type(self).__name__}({self._value})\"\n   24  \n\nE:\\Python\\SciMotion\\data_types\\data_type_name.py:\n    1  \"\"\"\n    2: Assigns a unique name to each allowed DataType.\n    3  \n    4: This Enum class maps each permissible DataType\n    5  class that a Parameter object can use.\n    6  \"\"\"\n    .\n   16  \n   17  \n   18: class DataTypeName(Enum):\n   19:     \"\"\"Assigns a unique name to each allowed DataType.\"\"\"\n   20  \n   21      NUMBER = Number\n\nE:\\Python\\SciMotion\\data_types\\integer.py:\n    2  Represents an integer number.\n    3  \n    4: This module defines the Integer DataType, which represents an\n    5  integer number. It is stored as a numpy int32 array with 1 entry.\n    6  \"\"\"\n\nE:\\Python\\SciMotion\\data_types\\ndarray.py:\n    2  Represents a N-dimensional array.\n    3  \n    4: This module defines the NDArray DataType, which represents a matrix\n    5  of numbers. It is stored as a numpy array and can be of a defined\n    6  numpy dtype and shape.\n    .\n   11  import numpy as np\n   12  \n   13: from data_types.data_type import DataType\n   14  \n   15  \n   16: class NDArray(DataType):\n   17      \"\"\"Represents a N-dimensional array.\"\"\"\n   18  \n\nE:\\Python\\SciMotion\\data_types\\number.py:\n    2  Represents a floating point number.\n    3  \n    4: This module defines the Number DataType, which represents a floating\n    5  point number. It is stored as a numpy float32 array with 1 entry.\n    6  \"\"\"\n\nE:\\Python\\SciMotion\\data_types\\vector2.py:\n    2  Represents a floating point 2D vector.\n    3  \n    4: This module defines the Vector2 DataType, which represents a floating\n    5  point 2D vector. It is stored as a numpy float32 array with 2 entries.\n    6  \"\"\"\n\nE:\\Python\\SciMotion\\data_types\\vector3.py:\n    2  Represents a floating point 3D vector.\n    3  \n    4: This module defines the Vector3 DataType, which represents a floating\n    5  point 3D vector. It is stored as a numpy float32 array with 3 entries.\n    6  \"\"\"\n\nE:\\Python\\SciMotion\\editing\\entities\\keyframe.py:\n   11  \n   12  from utils.interpolate import Interpolate\n   13: from data_types.data_type import DataType\n   14  \n   15  \n   ..\n   28  \n   29      _frame: int\n   30:     _value: DataType\n   31      _keyframe_type: KeyframeType\n   32:     _left_handle: tuple[float, DataType]    # tuple[influence, -offset]\n   33:     _right_handle: tuple[float, DataType]    # tuple[influence, offset]\n   34  \n   35      def __init__(self,\n   36                   frame: int,\n   37:                  value: DataType,\n   38                   keyframe_type: KeyframeType = KeyframeType.LINEAR,\n   39:                  left_handle: tuple[float, DataType] = None,\n   40:                  right_handle: tuple[float, DataType] = None):\n   41          self._frame = frame\n   42          self._value = value\n   ..\n   59          return self._value\n   60  \n   61:     def interpolate_to(self, keyframe_b: Self, t: float) -> DataType:\n   62          \"\"\"Interpolate from this keyframe to another with factor t.\"\"\"\n   63          _value_a = self._value\n\nE:\\Python\\SciMotion\\editing\\entities\\parameter.py:\n    2  Represents a property that can vary over time.\n    3  \n    4: A Parameter is an object which stores a value of a certain DataType, has\n    5  default, minimum, and maximum values and can be keyframed for animations.\n    6  \"\"\"\n    .\n    8  from typing import Type\n    9  \n   10: from data_types.data_type import DataType\n   11  from editing.entities.keyframe import Keyframe\n   12  \n   ..\n   16  \n   17      _accepts_keyframes: bool\n   18:     _data_type: Type[DataType]\n   19:     _current_value: DataType\n   20:     _default_value: DataType\n   21:     _min_value: DataType\n   22:     _max_value: DataType\n   23      _keyframe_list: list[Keyframe]\n   24  \n   25      def __init__(self,\n   26                   accepts_keyframes: bool = True,\n   27:                  data_type: Type[DataType] = DataType,\n   28:                  default_value: DataType = None,\n   29:                  min_value: DataType = None,\n   30:                  max_value: DataType = None):\n   31          self._data_type = data_type\n   32          self._accepts_keyframes = accepts_keyframes\n   ..\n   42          self._keyframe_at_frame_dict = dict()\n   43  \n   44:     def get_current_value(self) -> DataType:\n   45          \"\"\"Return the current value stored in the Parameter.\"\"\"\n   46          return self._current_value\n   47  \n   48:     def set_current_value(self, value: DataType):\n   49          \"\"\"Change the current value stored in the Parameter.\"\"\"\n   50          self._current_value = value.clip(self._min_value, self._max_value)\n\nE:\\Python\\SciMotion\\editing\\entities\\parameter_template.py:\n    4  The ParameterTemplate class describes a template for the Parameter\n    5  that must be created when the user applies a Modifier to a layer.\n    6: It contains information on the type of Parameter (DataType,\n    7  default value, minimum and maximum values...) but also a\n    8  unique name_id used to pass values to the rendering pipeline,\n    .\n   12  from typing import Type\n   13  \n   14: from data_types.data_type import DataType\n   15  \n   16  \n   ..\n   26      # Parameter properties\n   27      _accepts_keyframes: bool\n   28:     _data_type: Type[DataType]\n   29:     _default_value: DataType\n   30:     _min_value: DataType\n   31:     _max_value: DataType\n   32  \n   33      def __init__(self,\n   34                   name_id: str,\n   35:                  data_type: Type[DataType],\n   36                   title: str = \"\",\n   37:                  default_value: DataType = None,\n   38:                  min_value: DataType = None,\n   39:                  max_value: DataType = None,\n   40                   accepts_keyframes: bool = True):\n   41          self._name_id = name_id\n   ..\n   59          return self._accepts_keyframes\n   60  \n   61:     def get_data_type(self) -> Type[DataType]:\n   62          \"\"\"Retrieve the data type.\"\"\"\n   63          return self._data_type\n   64  \n   65:     def get_default_value(self) -> DataType:\n   66          \"\"\"Retrieve the default value.\"\"\"\n   67          return self._default_value\n   68  \n   69:     def get_min_value(self) -> DataType:\n   70          \"\"\"Retrieve the minimum value.\"\"\"\n   71          return self._min_value\n   72  \n   73:     def get_max_value(self) -> DataType:\n   74          \"\"\"Retrieve the maximum value.\"\"\"\n   75          return self._max_value\n\nE:\\Python\\SciMotion\\editing\\services\\animation_service.py:\n   10  \n   11  from utils.singleton import Singleton\n   12: from data_types.data_type import DataType\n   13  from editing.entities.parameter import Parameter\n   14  from editing.entities.keyframe import Keyframe\n   ..\n   45      def get_value_at_frame(self,\n   46                             parameter: Parameter,\n   47:                            frame: Union[int, float]) -> DataType:\n   48          \"\"\"Retrieve the value of a parameter at a given frame.\"\"\"\n   49          if not parameter.accepts_keyframes():\n\nE:\\Python\\SciMotion\\editing\\services\\modifier_service.py:\n   14  \n   15  from utils.singleton import Singleton\n   16: from data_types.data_type_name import DataTypeName\n   17  from editing.entities.modifier_template import ModifierTemplate, ModifierFlags\n   18  from editing.entities.modifier_repository import ModifierRepository\n   ..\n  137                                  f\"'{modifier_name_id}' should be a str.\")\n  138              _data_type_name = _param_info[\"data_type\"].upper()\n  139:             if not hasattr(DataTypeName, _data_type_name):\n  140                  AttributeError(f\"Parameter #{_param_count} from modifier \"\n  141                                 f\"'{modifier_name_id}' has illicit 'data_type'\"\n  142                                 f\": '{_data_type_name}'\")\n  143:             _data_type = DataTypeName[_data_type_name].value\n  144  \n  145              _param_title = \"\"\n\n58 matches across 14 files\n",
+			"contents": "\"\"\"\nProvides useful information about the rendering context.\n\nA RenderContext is used to provide a ModifierProgram with various\ninformation about the rendering context, such as the Layer dimensions,\nthe current frame number, and so on, as well as the source and destination\ntextures, and a ModernGL context for running shaders if needed...\n\"\"\"\n\nimport moderngl\n\n\nclass RenderContext:\n    \"\"\"Provides useful information about the rendering context.\"\"\"\n\n    _frame: int\n    _width: int\n    _height: int\n    _gl_context: moderngl.Context\n    _src_texture: moderngl.Texture\n    _dest_texture: moderngl.Texture\n\n    def __init__(self, _frame: int, _width: int, _height: int):\n        self._frame = _frame\n        self._width = _width\n        self._height = _height\n        self._gl_context = None\n        self._src_texture = None\n        self._dest_texture = None\n\n    def get_gl_context(self) -> moderngl.Context:\n        \"\"\"Return a moderngl standalone context.\"\"\"\n        if self._gl_context is None:\n            self._gl_context = moderngl.create_context(standalone=True)\n        return self._gl_context\n\n    def get_width(self) -> int:\n        \"\"\"Return the width of the Layer.\"\"\"\n        return self._width\n\n    def get_height(self) -> int:\n        \"\"\"Return the height of the Layer.\"\"\"\n        return self._height\n\n    def get_src_texture(self) -> moderngl.Texture:\n        \"\"\"Return the destination OpenGL texture.\"\"\"\n        if self._src_texture is None:\n            self._src_texture = self.get_gl_context().texture(\n                (self.get_width(), self.get_height()), 4, dtype=\"f4\")\n        return self._src_texture\n\n    def get_dest_texture(self) -> moderngl.Texture:\n        \"\"\"Return the destination OpenGL texture.\"\"\"\n        if self._dest_texture is None:\n            self._dest_texture = self.get_gl_context().texture(\n                (self.get_width(), self.get_height()), 4, dtype=\"f4\")\n        return self._dest_texture\n\n    def roll_textures(self):\n        \"\"\"Replace src texture with dest texture, and clear dest texture.\"\"\"\n        self._src_texture = self.get_dest_texture()\n        self._dest_texture = self.get_gl_context().texture(\n            (self.get_width(), self.get_height()), 4, dtype=\"f4\")\n",
+			"file": "rendering/entities/render_context.py",
+			"file_size": 2286,
+			"file_write_time": 133745276740443792,
 			"settings":
 			{
-				"buffer_size": 8953,
+				"buffer_size": 2223,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "Searching 31 files for \"editing\"\n\nE:\\Python\\SciMotion\\main.py:\n    5  import configparser\n    6  \n    7: from editing.services.modifier_service import ModifierService\n    8: from editing.services.render_service import RenderService\n    9  from rendering.entities.render_context import RenderContext\n   10  \n\nE:\\Python\\SciMotion\\README.md:\n    1  # SciMotion\n    2  \n    3: SciMotion is a desktop app designed to help creators, with video editing, motion design, and physically-based rendering capabilities.\n    4  Libraries used: numpy, PyQt5, PyOpenGL, glfw\n    5  \n\nE:\\Python\\SciMotion\\TODO.txt:\n    3  \n    4  Sequence flow:\n    5:   GUI can call EDITING\n    6:   EDITING can call RENDERING, MEDIA\n    7    RENDERING can call MEDIA\n    8  \n    9  Instructions:\n   10:   GUI can never see the entities within EDITING (only retrieve generic data or EDITING DTO)\n   11:   EDITING can never see the entities within RENDERING or MEDIA (only retrieve generic data)\n   12    The module RENDERING must be independent from other modules (it can know MEDIA but that's it)\n   13:   Use DTO (class with only data, no methods / logic) to communicate from EDITING to RENDERING\n   14  \n   15  Coding conventions:\n\nE:\\Python\\SciMotion\\core\\entities\\modifier.py:\n    8  \"\"\"\n    9  \n   10: from editing.entities.parameter import Parameter\n   11  \n   12  \n\nE:\\Python\\SciMotion\\core\\entities\\modifier_repository.py:\n    8  \n    9  from utils.singleton import Singleton\n   10: from editing.entities.modifier_template import ModifierTemplate\n   11  \n   12  \n\nE:\\Python\\SciMotion\\core\\entities\\modifier_template.py:\n   11  from typing import Callable\n   12  \n   13: from editing.entities.parameter_template import ParameterTemplate\n   14  \n   15  \n\nE:\\Python\\SciMotion\\core\\entities\\parameter.py:\n    9  \n   10  from data_types.data_type import DataType\n   11: from editing.entities.keyframe import Keyframe\n   12  \n   13  \n\nE:\\Python\\SciMotion\\core\\services\\animation_service.py:\n    2  Service concerning animation in general.\n    3  \n    4: The AnimationService class defines services within the editing\n    5  package, concerning animation capabilities. This includes\n    6  keyframing, interpolating between keyframes...\n    .\n   11  from utils.singleton import Singleton\n   12  from data_types.data_type import DataType\n   13: from editing.entities.parameter import Parameter\n   14: from editing.entities.keyframe import Keyframe\n   15  \n   16  \n\nE:\\Python\\SciMotion\\core\\services\\modifier_service.py:\n    2  Service concerning modifiers in general.\n    3  \n    4: The ModifierService class defines services within the editing\n    5  package, concerning modifiers that the user can apply. This\n    6  includes loading and managing the modifier repository,\n    .\n   15  from utils.singleton import Singleton\n   16  from data_types.data_type_name import DataTypeName\n   17: from editing.entities.modifier_template import ModifierTemplate, ModifierFlags\n   18: from editing.entities.modifier_repository import ModifierRepository\n   19: from editing.entities.parameter_template import ParameterTemplate\n   20: from editing.entities.parameter import Parameter\n   21: from editing.entities.modifier import Modifier\n   22  \n   23  \n\nE:\\Python\\SciMotion\\core\\services\\render_service.py:\n    1  from utils.singleton import Singleton\n    2: from editing.entities.modifier_repository import ModifierRepository\n    3: from editing.entities.modifier import Modifier\n    4  from rendering.entities.render_context import RenderContext\n    5  \n\n24 matches across 10 files\n\n\nSearching 31 files for \"rendering\"\n\nE:\\Python\\SciMotion\\README.md:\n    1  # SciMotion\n    2  \n    3: SciMotion is a desktop app designed to help creators, with video editing, motion design, and physically-based rendering capabilities.\n    4  Libraries used: numpy, PyQt5, PyOpenGL, glfw\n    5  \n\nE:\\Python\\SciMotion\\TODO.txt:\n    1  TODO:\n    2:   separate thread for rendering\n    3  \n    4  Sequence flow:\n    5    GUI can call CORE\n    6    CORE can call MEDIA\n    7:   RENDERING can call MEDIA\n    8  \n    9  Instructions:\n\nE:\\Python\\SciMotion\\core\\entities\\modifier_template.py:\n    3  \n    4  The ModifierTemplate class contains a reference to a Modifier that the\n    5: rendering pipeline can apply to a layer, and a list of ParameterTemplate\n    6  that lay out a model for which Parameter objects to create when\n    7  instanciating the interface, for the user to adjust.\n\nE:\\Python\\SciMotion\\core\\entities\\parameter_template.py:\n    6  It contains information on the type of Parameter (DataType,\n    7  default value, minimum and maximum values...) but also a\n    8: unique name_id used to pass values to the rendering pipeline,\n    9  as well as information about the parameter for the user.\n   10  \"\"\"\n\nE:\\Python\\SciMotion\\core\\entities\\render_context.py:\n    1  \"\"\"\n    2: Provides useful information about the rendering context.\n    3  \n    4  A RenderContext is used to provide a ModifierProgram with various\n    5: information about the rendering context, such as the Layer dimensions,\n    6  the current frame number, and so on, as well as the source and destination\n    7  textures, and a ModernGL context for running shaders if needed...\n    .\n   12  \n   13  class RenderContext:\n   14:     \"\"\"Provides useful information about the rendering context.\"\"\"\n   15  \n   16      _frame: int\n\nE:\\Python\\SciMotion\\core\\services\\render_service.py:\n    2  from core.entities.modifier_repository import ModifierRepository\n    3  from core.entities.modifier import Modifier\n    4: from rendering.entities.render_context import RenderContext\n    5  \n    6  \n\n9 matches across 6 files\n\n\nSearching 33 files for \"super\"\n\nE:\\Python\\SciMotion\\core\\entities\\visual_layer.py:\n   19                   start_frame: int,\n   20                   end_frame: int):\n   21:         super().__init__(title, start_frame, end_frame)\n   22          self._title = title\n   23          self._start_frame = start_frame\n\nE:\\Python\\SciMotion\\data_types\\boolean.py:\n   17  \n   18      def __init__(self, value: bool):\n   19:         super().__init__(value, dtype=np.bool_, shape=1)\n   20  \n\nE:\\Python\\SciMotion\\data_types\\color.py:\n   25          # Initialize opaque color\n   26          if len(values) == 3:\n   27:             super().__init__(*values, 1, dtype=np.float32, shape=4)\n   28          elif len(values) == 1:\n   29              if not NDArray.is_array(values[0]):\n   30:                 super().__init__(*[values[0] for i in range(3)], 1,\n   31                                   dtype=np.float32, shape=4)\n   32              elif len(values[0]) == 3:\n   33:                 super().__init__(*[x for x in values[0]], 1,\n   34                                   dtype=np.float32, shape=4)\n   35              elif len(values[0]) == 1:\n   36:                 super().__init__(*[values[0][0] for i in range(3)], 1,\n   37                                   dtype=np.float32, shape=4)\n   38  \n   39              # Initialize RGBA color\n   40              else:\n   41:                 super().__init__(*values, dtype=np.float32, shape=4)\n   42          else:\n   43:             super().__init__(*values, dtype=np.float32, shape=4)\n   44  \n   45  \n\nE:\\Python\\SciMotion\\data_types\\integer.py:\n   17  \n   18      def __init__(self, value: int):\n   19:         super().__init__(value, dtype=np.int32, shape=1)\n   20  \n\nE:\\Python\\SciMotion\\data_types\\number.py:\n   17  \n   18      def __init__(self, value: float):\n   19:         super().__init__(value, dtype=np.float32, shape=1)\n   20  \n\nE:\\Python\\SciMotion\\data_types\\vector2.py:\n   17  \n   18      def __init__(self, value: float):\n   19:         super().__init__(value, dtype=np.float32, shape=2)\n   20  \n\nE:\\Python\\SciMotion\\data_types\\vector3.py:\n   17  \n   18      def __init__(self, value: float):\n   19:         super().__init__(value, dtype=np.float32, shape=3)\n   20  \n\nE:\\Python\\SciMotion\\utils\\singleton.py:\n   15          \"\"\"Create instance if needed only.\"\"\"\n   16          if cls not in cls._instances:\n   17:             instance = super().__call__(*args, **kwargs)\n   18              cls._instances[cls] = instance\n   19          else:\n\n13 matches across 8 files\n\n\nSearching 37 files for \"opengl\"\n\nE:\\Python\\SciMotion\\README.md:\n    2  \n    3  SciMotion is a desktop app designed to help creators, with video editing, motion design, and physically-based rendering capabilities.\n    4: Libraries used: numpy, PyQt5, PyOpenGL, glfw\n    5  \n    6  ## Install\n\nE:\\Python\\SciMotion\\core\\entities\\render_context.py:\n   42  \n   43      def get_src_texture(self) -> moderngl.Texture:\n   44:         \"\"\"Return the destination OpenGL texture.\"\"\"\n   45          if self._src_texture is None:\n   46              self._src_texture = self.get_gl_context().texture(\n   ..\n   49  \n   50      def get_dest_texture(self) -> moderngl.Texture:\n   51:         \"\"\"Return the destination OpenGL texture.\"\"\"\n   52          if self._dest_texture is None:\n   53              self._dest_texture = self.get_gl_context().texture(\n   ..\n   62  \n   63      def set_src_texture(self, texture: moderngl.Texture):\n   64:         \"\"\"Set the source OpenGL texture.\"\"\"\n   65          self._src_texture = texture\n   66  \n\n4 matches across 2 files\n",
+			"settings":
+			{
+				"buffer_size": 9201,
 				"line_ending": "Windows",
 				"name": "Find Results",
 				"scratch": true
-			}
+			},
+			"undo_stack":
+			[
+			]
+		},
+		{
+			"file": "core/entities/render_context.py",
+			"settings":
+			{
+				"buffer_size": 2307,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					6,
+					1,
+					"insert",
+					{
+						"characters": "moderngl"
+					},
+					"CQAAADwFAAAAAAAAPQUAAAAAAAAAAAAAPQUAAAAAAAA9BQAAAAAAAAYAAABPcGVuR0w9BQAAAAAAAD4FAAAAAAAAAAAAAD4FAAAAAAAAPwUAAAAAAAAAAAAAPwUAAAAAAABABQAAAAAAAAAAAABABQAAAAAAAEEFAAAAAAAAAAAAAEEFAAAAAAAAQgUAAAAAAAAAAAAAQgUAAAAAAABDBQAAAAAAAAAAAABDBQAAAAAAAEQFAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAPAUAAAAAAABCBQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					11,
+					1,
+					"insert",
+					{
+						"characters": "moderngl"
+					},
+					"CQAAAHQGAAAAAAAAdQYAAAAAAAAAAAAAdQYAAAAAAAB1BgAAAAAAAAYAAABPcGVuR0x1BgAAAAAAAHYGAAAAAAAAAAAAAHYGAAAAAAAAdwYAAAAAAAAAAAAAdwYAAAAAAAB4BgAAAAAAAAAAAAB4BgAAAAAAAHkGAAAAAAAAAAAAAHkGAAAAAAAAegYAAAAAAAAAAAAAegYAAAAAAAB7BgAAAAAAAAAAAAB7BgAAAAAAAHwGAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAdAYAAAAAAAB6BgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					16,
+					1,
+					"insert",
+					{
+						"characters": "moderngl"
+					},
+					"CQAAAMoIAAAAAAAAywgAAAAAAAAAAAAAywgAAAAAAADLCAAAAAAAAAYAAABPcGVuR0zLCAAAAAAAAMwIAAAAAAAAAAAAAMwIAAAAAAAAzQgAAAAAAAAAAAAAzQgAAAAAAADOCAAAAAAAAAAAAADOCAAAAAAAAM8IAAAAAAAAAAAAAM8IAAAAAAAA0AgAAAAAAAAAAAAA0AgAAAAAAADRCAAAAAAAAAAAAADRCAAAAAAAANIIAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAyggAAAAAAADQCAAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "core/services/render_service.py",
+			"settings":
+			{
+				"buffer_size": 3233,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					10,
+					1,
+					"paste",
+					null,
+					"BAAAAG8AAAAAAAAAcwAAAAAAAAAAAAAAcwAAAAAAAABzAAAAAAAAAAcAAABlZGl0aW5nKwAAAAAAAAAvAAAAAAAAAAAAAAAvAAAAAAAAAC8AAAAAAAAABwAAAGVkaXRpbmc",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAACAAAAKwAAAAAAAAAyAAAAAAAAAAAAAAAAAPC/bwAAAAAAAAB2AAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					6,
+					1,
+					"insert",
+					{
+						"characters": "core"
+					},
+					"BQAAAJgAAAAAAAAAmQAAAAAAAAAAAAAAmQAAAAAAAACZAAAAAAAAAAkAAAByZW5kZXJpbmeZAAAAAAAAAJoAAAAAAAAAAAAAAJoAAAAAAAAAmwAAAAAAAAAAAAAAmwAAAAAAAACcAAAAAAAAAAAAAAA",
+					"AwAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAJgAAAAAAAAAoQAAAAAAAAAAAAAAAADwvw"
+				]
+			]
+		},
+		{
+			"file": "core/services/modifier_service.py",
+			"settings":
+			{
+				"buffer_size": 11436,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					26,
+					1,
+					"paste",
+					null,
+					"DAAAAMECAAAAAAAAxQIAAAAAAAAAAAAAxQIAAAAAAADFAgAAAAAAAAcAAABlZGl0aW5nkAIAAAAAAACUAgAAAAAAAAAAAACUAgAAAAAAAJQCAAAAAAAABwAAAGVkaXRpbmdOAgAAAAAAAFICAAAAAAAAAAAAAFICAAAAAAAAUgIAAAAAAAAHAAAAZWRpdGluZwoCAAAAAAAADgIAAAAAAAAAAAAADgIAAAAAAAAOAgAAAAAAAAcAAABlZGl0aW5nuwEAAAAAAAC/AQAAAAAAAAAAAAC/AQAAAAAAAL8BAAAAAAAABwAAAGVkaXRpbmdkAAAAAAAAAGgAAAAAAAAAAAAAAGgAAAAAAAAAaAAAAAAAAAAHAAAAZWRpdGluZw",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAAGAAAAZAAAAAAAAABrAAAAAAAAAAAAAAAAAPC/uwEAAAAAAADCAQAAAAAAAAAAAAAAAPC/CgIAAAAAAAARAgAAAAAAAAAAAAAAAPC/TgIAAAAAAABVAgAAAAAAAAAAAAAAAPC/kAIAAAAAAACXAgAAAAAAAAAAAAAAAPC/wQIAAAAAAADIAgAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "core/services/animation_service.py",
+			"settings":
+			{
+				"buffer_size": 2983,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					6,
+					1,
+					"paste",
+					null,
+					"AgAAAGUAAAAAAAAAaQAAAAAAAAAAAAAAaQAAAAAAAABpAAAAAAAAAAcAAABlZGl0aW5n",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAZQAAAAAAAABsAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					15,
+					1,
+					"paste",
+					null,
+					"BAAAAHgBAAAAAAAAfAEAAAAAAAAAAAAAfAEAAAAAAAB8AQAAAAAAAAcAAABlZGl0aW5nRwEAAAAAAABLAQAAAAAAAAAAAABLAQAAAAAAAEsBAAAAAAAABwAAAGVkaXRpbmc",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAACAAAARwEAAAAAAABOAQAAAAAAAAAAAAAAAPC/eAEAAAAAAAB/AQAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "core/entities/parameter.py",
+			"settings":
+			{
+				"buffer_size": 1916,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					6,
+					1,
+					"paste",
+					null,
+					"AgAAABQBAAAAAAAAGAEAAAAAAAAAAAAAGAEAAAAAAAAYAQAAAAAAAAcAAABlZGl0aW5n",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAFAEAAAAAAAAbAQAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "core/entities/modifier_template.py",
+			"settings":
+			{
+				"buffer_size": 1561,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					6,
+					1,
+					"paste",
+					null,
+					"AgAAAIEBAAAAAAAAhQEAAAAAAAAAAAAAhQEAAAAAAACFAQAAAAAAAAcAAABlZGl0aW5n",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAgQEAAAAAAACIAQAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "core/entities/modifier_repository.py",
+			"settings":
+			{
+				"buffer_size": 1138,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					6,
+					1,
+					"paste",
+					null,
+					"AgAAAEwBAAAAAAAAUAEAAAAAAAAAAAAAUAEAAAAAAABQAQAAAAAAAAcAAABlZGl0aW5n",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAATAEAAAAAAABTAQAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "core/entities/modifier.py",
+			"settings":
+			{
+				"buffer_size": 930,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					6,
+					1,
+					"insert",
+					{
+						"characters": "core"
+					},
+					"BQAAAAQBAAAAAAAABQEAAAAAAAAAAAAABQEAAAAAAAAFAQAAAAAAAAcAAABlZGl0aW5nBQEAAAAAAAAGAQAAAAAAAAAAAAAGAQAAAAAAAAcBAAAAAAAAAAAAAAcBAAAAAAAACAEAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAABAEAAAAAAAALAQAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "TODO.txt",
+			"settings":
+			{
+				"buffer_size": 2261,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					8,
+					1,
+					"left_delete",
+					null,
+					"AQAAAGAAAAAAAAAAYAAAAAAAAAALAAAAUkVOREVSSU5HLCA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAawAAAAAAAABgAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					17,
+					1,
+					"insert",
+					{
+						"characters": "CORE"
+					},
+					"CgAAAE8AAAAAAAAAUAAAAAAAAAAAAAAAUAAAAAAAAABQAAAAAAAAAAcAAABFRElUSU5HRQAAAAAAAABGAAAAAAAAAAAAAABGAAAAAAAAAEYAAAAAAAAABwAAAEVESVRJTkdKAAAAAAAAAEsAAAAAAAAAAAAAAEYAAAAAAAAARwAAAAAAAAAAAAAATAAAAAAAAABNAAAAAAAAAAAAAABHAAAAAAAAAEgAAAAAAAAAAAAAAE4AAAAAAAAATwAAAAAAAAAAAAAASAAAAAAAAABJAAAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAACAAAARQAAAAAAAABMAAAAAAAAAAAAAAAAAPC/TwAAAAAAAABWAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					36,
+					1,
+					"insert",
+					{
+						"characters": "CORE"
+					},
+					"FAAAAOsBAAAAAAAA7AEAAAAAAAAAAAAA7AEAAAAAAADsAQAAAAAAAAcAAABFRElUSU5H6AAAAAAAAADpAAAAAAAAAAAAAADpAAAAAAAAAOkAAAAAAAAABwAAAEVESVRJTkfZAAAAAAAAANoAAAAAAAAAAAAAANoAAAAAAAAA2gAAAAAAAAAHAAAARURJVElOR7IAAAAAAAAAswAAAAAAAAAAAAAAswAAAAAAAACzAAAAAAAAAAcAAABFRElUSU5H2gEAAAAAAADbAQAAAAAAAAAAAADdAAAAAAAAAN4AAAAAAAAAAAAAANQAAAAAAAAA1QAAAAAAAAAAAAAAswAAAAAAAAC0AAAAAAAAAAAAAADeAQAAAAAAAN8BAAAAAAAAAAAAAOAAAAAAAAAA4QAAAAAAAAAAAAAA1gAAAAAAAADXAAAAAAAAAAAAAAC0AAAAAAAAALUAAAAAAAAAAAAAAOIBAAAAAAAA4wEAAAAAAAAAAAAA4wAAAAAAAADkAAAAAAAAAAAAAADYAAAAAAAAANkAAAAAAAAAAAAAALUAAAAAAAAAtgAAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAAEAAAAsgAAAAAAAAC5AAAAAAAAAAAAAAAAAPC/2QAAAAAAAADgAAAAAAAAAAAAAAAAAPC/6AAAAAAAAADvAAAAAAAAAAAAAAAAAPC/6wEAAAAAAADyAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					42,
+					1,
+					"left_delete",
+					null,
+					"AQAAAAkBAAAAAAAACQEAAAAAAAANAAAAUkVOREVSSU5HIG9yIA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAACQEAAAAAAAAWAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					55,
+					1,
+					"insert",
+					{
+						"characters": "MEDIA"
+					},
+					"BgAAADkBAAAAAAAAOgEAAAAAAAAAAAAAOgEAAAAAAAA6AQAAAAAAAAkAAABSRU5ERVJJTkc6AQAAAAAAADsBAAAAAAAAAAAAADsBAAAAAAAAPAEAAAAAAAAAAAAAPAEAAAAAAAA9AQAAAAAAAAAAAAA9AQAAAAAAAD4BAAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAOQEAAAAAAABCAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					70,
+					1,
+					"left_delete",
+					null,
+					"AQAAAGUBAAAAAAAAZQEAAAAAAAAiAAAAIChpdCBjYW4ga25vdyBNRURJQSBidXQgdGhhdCdzIGl0KQ",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAhwEAAAAAAABlAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					75,
+					1,
+					"insert",
+					{
+						"characters": "MEDIA"
+					},
+					"BgAAALcBAAAAAAAAuAEAAAAAAAAAAAAAuAEAAAAAAAC4AQAAAAAAAAkAAABSRU5ERVJJTke4AQAAAAAAALkBAAAAAAAAAAAAALkBAAAAAAAAugEAAAAAAAAAAAAAugEAAAAAAAC7AQAAAAAAAAAAAAC7AQAAAAAAALwBAAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAtwEAAAAAAADAAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					76,
+					1,
+					"insert",
+					{
+						"characters": " if"
+					},
+					"AwAAALwBAAAAAAAAvQEAAAAAAAAAAAAAvQEAAAAAAAC+AQAAAAAAAAAAAAC+AQAAAAAAAL8BAAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAvAEAAAAAAAC8AQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					77,
+					1,
+					"insert",
+					{
+						"characters": " needed"
+					},
+					"BwAAAL8BAAAAAAAAwAEAAAAAAAAAAAAAwAEAAAAAAADBAQAAAAAAAAAAAADBAQAAAAAAAMIBAAAAAAAAAAAAAMIBAAAAAAAAwwEAAAAAAAAAAAAAwwEAAAAAAADEAQAAAAAAAAAAAADEAQAAAAAAAMUBAAAAAAAAAAAAAMUBAAAAAAAAxgEAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAABAAAAvwEAAAAAAAC/AQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					4,
+					1,
+					"left_delete",
+					null,
+					"AQAAAF8AAAAAAAAAXwAAAAAAAAAbAAAACiAgUkVOREVSSU5HIGNhbiBjYWxsIE1FRElB",
+					"AwAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAHoAAAAAAAAAXwAAAAAAAAAAAAAAAADwvw"
+				]
+			]
+		},
+		{
+			"file": "main.py",
+			"settings":
+			{
+				"buffer_size": 1551,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					10,
+					1,
+					"insert",
+					{
+						"characters": "core"
+					},
+					"CgAAAKoAAAAAAAAAqwAAAAAAAAAAAAAAqwAAAAAAAACrAAAAAAAAAAcAAABlZGl0aW5nbAAAAAAAAABtAAAAAAAAAAAAAABtAAAAAAAAAG0AAAAAAAAABwAAAGVkaXRpbmelAAAAAAAAAKYAAAAAAAAAAAAAAG0AAAAAAAAAbgAAAAAAAAAAAAAApwAAAAAAAACoAAAAAAAAAAAAAABuAAAAAAAAAG8AAAAAAAAAAAAAAKkAAAAAAAAAqgAAAAAAAAAAAAAAbwAAAAAAAABwAAAAAAAAAAAAAAA",
+					"BAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8L8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwvwAAAAACAAAAbAAAAAAAAABzAAAAAAAAAAAAAAAAAPC/qgAAAAAAAACxAAAAAAAAAAAAAAAAAPC/"
+				]
+			]
 		}
 	],
 	"build_system": "",
@@ -128,11 +470,7 @@
 	[
 		"/E/Python/SciMotion",
 		"/E/Python/SciMotion/data_types",
-		"/E/Python/SciMotion/editing",
-		"/E/Python/SciMotion/editing/entities",
 		"/E/Python/SciMotion/modifiers",
-		"/E/Python/SciMotion/rendering",
-		"/E/Python/SciMotion/rendering/entities",
 		"/E/Python/SciMotion/utils"
 	],
 	"file_history":
@@ -275,6 +613,10 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"opengl",
+			"super",
+			"rendering",
+			"editing",
 			"datatype",
 			"Dict",
 			"Tuple",
@@ -354,253 +696,13 @@
 			[
 				{
 					"buffer": 0,
-					"selected": true,
-					"semi_transient": false,
+					"file": "rendering/entities/render_context.py",
+					"semi_transient": true,
 					"settings":
 					{
-						"buffer_size": 8953,
+						"buffer_size": 2223,
 						"regions":
 						{
-							"match":
-							{
-								"flags": 112,
-								"regions":
-								[
-									[
-										154,
-										162
-									],
-									[
-										403,
-										411
-									],
-									[
-										617,
-										625
-									],
-									[
-										666,
-										674
-									],
-									[
-										884,
-										892
-									],
-									[
-										1046,
-										1054
-									],
-									[
-										1236,
-										1244
-									],
-									[
-										1299,
-										1307
-									],
-									[
-										1400,
-										1408
-									],
-									[
-										1472,
-										1480
-									],
-									[
-										1648,
-										1656
-									],
-									[
-										1894,
-										1902
-									],
-									[
-										2113,
-										2121
-									],
-									[
-										2159,
-										2167
-									],
-									[
-										2361,
-										2369
-									],
-									[
-										2620,
-										2628
-									],
-									[
-										2884,
-										2892
-									],
-									[
-										3159,
-										3167
-									],
-									[
-										3240,
-										3248
-									],
-									[
-										3327,
-										3335
-									],
-									[
-										3407,
-										3415
-									],
-									[
-										3552,
-										3560
-									],
-									[
-										3687,
-										3695
-									],
-									[
-										3756,
-										3764
-									],
-									[
-										3960,
-										3968
-									],
-									[
-										4266,
-										4274
-									],
-									[
-										4457,
-										4465
-									],
-									[
-										4606,
-										4614
-									],
-									[
-										4643,
-										4651
-									],
-									[
-										4679,
-										4687
-									],
-									[
-										4711,
-										4719
-									],
-									[
-										4743,
-										4751
-									],
-									[
-										4928,
-										4936
-									],
-									[
-										4940,
-										4948
-									],
-									[
-										4989,
-										4997
-									],
-									[
-										5041,
-										5049
-									],
-									[
-										5093,
-										5101
-									],
-									[
-										5322,
-										5330
-									],
-									[
-										5499,
-										5507
-									],
-									[
-										5928,
-										5936
-									],
-									[
-										6156,
-										6164
-									],
-									[
-										6285,
-										6293
-									],
-									[
-										6322,
-										6330
-									],
-									[
-										6354,
-										6362
-									],
-									[
-										6386,
-										6394
-									],
-									[
-										6511,
-										6519
-									],
-									[
-										6602,
-										6610
-									],
-									[
-										6654,
-										6662
-									],
-									[
-										6706,
-										6714
-									],
-									[
-										6922,
-										6930
-									],
-									[
-										7066,
-										7074
-									],
-									[
-										7213,
-										7221
-									],
-									[
-										7356,
-										7364
-									],
-									[
-										7606,
-										7614
-									],
-									[
-										7890,
-										7898
-									],
-									[
-										8183,
-										8191
-									],
-									[
-										8548,
-										8556
-									],
-									[
-										8844,
-										8852
-									]
-								],
-								"scope": ""
-							}
 						},
 						"selection":
 						[
@@ -611,9 +713,248 @@
 						],
 						"settings":
 						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9201,
+						"regions":
+						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										110,
+										117
+									],
+									[
+										179,
+										186
+									],
+									[
+										438,
+										445
+									],
+									[
+										650,
+										657
+									],
+									[
+										667,
+										674
+									],
+									[
+										811,
+										818
+									],
+									[
+										850,
+										857
+									],
+									[
+										872,
+										879
+									],
+									[
+										1145,
+										1152
+									],
+									[
+										1280,
+										1287
+									],
+									[
+										1464,
+										1471
+									],
+									[
+										1651,
+										1658
+									],
+									[
+										1846,
+										1853
+									],
+									[
+										2079,
+										2086
+									],
+									[
+										2318,
+										2325
+									],
+									[
+										2374,
+										2381
+									],
+									[
+										2605,
+										2612
+									],
+									[
+										2863,
+										2870
+									],
+									[
+										2949,
+										2956
+									],
+									[
+										3024,
+										3031
+									],
+									[
+										3097,
+										3104
+									],
+									[
+										3153,
+										3160
+									],
+									[
+										3322,
+										3329
+									],
+									[
+										3397,
+										3404
+									],
+									[
+										3755,
+										3764
+									],
+									[
+										3912,
+										3921
+									],
+									[
+										4017,
+										4026
+									],
+									[
+										4221,
+										4230
+									],
+									[
+										4663,
+										4672
+									],
+									[
+										4868,
+										4877
+									],
+									[
+										4997,
+										5006
+									],
+									[
+										5295,
+										5304
+									],
+									[
+										5537,
+										5546
+									],
+									[
+										5817,
+										5822
+									],
+									[
+										6058,
+										6063
+									],
+									[
+										6253,
+										6258
+									],
+									[
+										6425,
+										6430
+									],
+									[
+										6612,
+										6617
+									],
+									[
+										6792,
+										6797
+									],
+									[
+										7013,
+										7018
+									],
+									[
+										7106,
+										7111
+									],
+									[
+										7285,
+										7290
+									],
+									[
+										7453,
+										7458
+									],
+									[
+										7624,
+										7629
+									],
+									[
+										7795,
+										7800
+									],
+									[
+										8023,
+										8028
+									],
+									[
+										8409,
+										8415
+									],
+									[
+										8609,
+										8615
+									],
+									[
+										8857,
+										8863
+									],
+									[
+										9105,
+										9111
+									]
+								],
+								"scope": ""
+							}
+						},
+						"selection":
+						[
+							[
+								8615,
+								8615
+							]
+						],
+						"settings":
+						{
 							"detect_indentation": false,
 							"line_numbers": false,
-							"output_tag": 1,
+							"output_tag": 4,
 							"result_base_dir": "",
 							"result_file_regex": "^([^ \t].*):$",
 							"result_line_regex": "^ +([0-9]+):",
@@ -622,10 +963,335 @@
 							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 3348.0,
+						"translation.y": 4158.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "core/entities/render_context.py",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2307,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2258,
+								2258
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 136.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "core/services/render_service.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3233,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "core/services/modifier_service.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11436,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "core/services/animation_service.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2983,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								331,
+								331
+							],
+							[
+								377,
+								377
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "core/entities/parameter.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1916,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								280,
+								280
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "core/entities/modifier_template.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1561,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								389,
+								389
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "core/entities/modifier_repository.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1138,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								336,
+								336
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "core/entities/modifier.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 930,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "TODO.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2261,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								95,
+								95
+							]
+						],
+						"settings":
+						{
+							"show_definitions": true,
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "main.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1551,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
 					"stack_multiselect": false,
 					"type": "text"
 				}

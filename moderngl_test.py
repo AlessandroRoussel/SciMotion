@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import moderngl
 import numpy as np
 
-_context = moderngl.create_standalone_context()
+_context = moderngl.create_context(standalone=True)
 
 _compute_shader_source = """
 #version 430

@@ -2,15 +2,14 @@ TODO:
   separate thread for rendering
 
 Sequence flow:
-  GUI can call EDITING
-  EDITING can call RENDERING, MEDIA
-  RENDERING can call MEDIA
+  GUI can call CORE
+  CORE can call MEDIA
 
 Instructions:
-  GUI can never see the entities within EDITING (only retrieve generic data or EDITING DTO)
-  EDITING can never see the entities within RENDERING or MEDIA (only retrieve generic data)
-  The module RENDERING must be independent from other modules (it can know MEDIA but that's it)
-  Use DTO (class with only data, no methods / logic) to communicate from EDITING to RENDERING
+  GUI can never see the entities within CORE (only retrieve generic data or CORE DTO)
+  CORE can never see the entities within MEDIA (only retrieve generic data)
+  The module MEDIA must be independent from other modules
+  Use DTO (class with only data, no methods / logic) to communicate from CORE to MEDIA if needed
 
 Coding conventions:
   PEP8 convention
