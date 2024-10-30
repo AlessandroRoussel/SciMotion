@@ -9,7 +9,7 @@ textures, and a ModernGL context for running shaders if needed...
 
 import moderngl
 
-from core.entities.gl_context import GLContext
+from utils.gl_context import GLContext
 
 
 class RenderContext:

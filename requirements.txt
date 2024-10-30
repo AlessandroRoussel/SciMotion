@@ -1,4 +1,5 @@
-PyQt5
 numpy
 moderngl
 configparser
+pyside6
+pyopengl
