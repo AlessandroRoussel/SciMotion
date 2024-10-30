@@ -18,7 +18,7 @@ from core.entities.render_context import RenderContext
 from core.entities.visual_layer import VisualLayer
 from core.entities.solid_layer import SolidLayer
 from core.entities.sequence import Sequence
-from utils.gl_context import GLContext
+from core.entities.gl_context import GLContext
 from utils.image import Image
 
 

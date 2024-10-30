@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QFrame, QComboBox, QVBoxLayout, QToolBar,
                                QWidget)
 from PySide6.QtGui import QWheelEvent
 
-from gui.views.gl_viewer import GLViewer
+from gui.views.viewer.gl_viewer import GLViewer
 
 
 class ViewerPane(QFrame):
@@ -23,8 +23,6 @@ class ViewerPane(QFrame):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self.setFrameShape(QFrame.StyledPanel)
-
         _layout = QVBoxLayout()
         _layout.setContentsMargins(0,0,0,0)
         _layout.setSpacing(0)
@@ -49,6 +47,11 @@ class ViewerPane(QFrame):
     def create_tool_bar(self) -> QToolBar:
         """Create the viewer tool bar."""
         _tool_bar = QToolBar("Viewer toolbar", self)
+        _base_color = self.palette().base().color()
+        _tool_bar.setStyleSheet("QToolBar {"
+                                f"background-color: {_base_color.name()};"
+                                "}")
+
         self._zoom_list = QComboBox(self)
         self._zoom_list.addItem("Fit to frame")
         self._zoom_list.addItem("Fit up to 100%")

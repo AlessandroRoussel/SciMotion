@@ -9,7 +9,10 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QSplitter,
 
 from utils.config import Config
 from gui.views.main_tool_bar import MainToolBar
-from gui.views.viewer_pane import ViewerPane
+from gui.views.viewer.viewer_pane import ViewerPane
+from gui.views.explorer.explorer_pane import ExplorerPane
+from gui.views.timeline.timeline_pane import TimelinePane
+from gui.views.misc.misc_pane import MiscPane
 
 
 class MainWindow(QMainWindow):
@@ -86,10 +89,10 @@ class MainWindow(QMainWindow):
 
     def create_main_panes(self) -> QSplitter:
         """Create the main panes and splitters."""
-        _explorer = QFrame(self)
+        _explorer = ExplorerPane(self)
         _viewer = ViewerPane(self)
-        _timeline = QFrame(self)
-        _misc = QFrame(self)
+        _timeline = TimelinePane(self)
+        _misc = MiscPane(self)
 
         _top = QSplitter(Qt.Horizontal, self)
         _left = QSplitter(Qt.Vertical, self)

@@ -11,8 +11,8 @@ import numpy as np
 from OpenGL import GL
 from PySide6.QtWidgets import QWidget
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtGui import QWheelEvent, QMouseEvent
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtGui import QWheelEvent, QMouseEvent, QRegion, QPainterPath
+from PySide6.QtCore import Qt, QPointF, QRectF
 
 from utils.config import Config
 from utils.image import Image
@@ -61,7 +61,7 @@ class GLViewer(QOpenGLWidget):
 
     def initializeGL(self):
         """Setup OpenGL, program and geometry."""
-        _qt_color = self.palette().color(self.backgroundRole())
+        _qt_color = self.palette().window().color()
         GL.glClearColor(_qt_color.redF(),
                         _qt_color.greenF(),
                         _qt_color.blueF(),
@@ -80,6 +80,8 @@ class GLViewer(QOpenGLWidget):
         _sequence = Sequence("", 960, 540, 0, 0)
         _layer = SolidLayer("", 0, 0, 960, 540, Color.BLACK)
         _modifier = ModifierService().modifier_from_template("linear_gradient")
+        ModifierService().add_modifier_to_layer(_modifier, _layer)
+        _modifier = ModifierService().modifier_from_template("unmultiply")
         ModifierService().add_modifier_to_layer(_modifier, _layer)
         LayerService().add_layer_to_sequence(_layer, _sequence)
         self._image = RenderService().render_sequence_frame(_sequence)

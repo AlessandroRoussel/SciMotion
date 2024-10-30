@@ -37,13 +37,26 @@ class ModifierService(metaclass=Singleton):
             raise ValueError(f"Trying to load modifiers from "
                              f"invalid directory '{directory}'")
         _repository = ModifierRepository().get_repository()
+        _structure = ModifierRepository().get_structure()
         for _py_file in directory.rglob("*.py"):
             if _py_file.is_file():
                 _name_id, _template = self.load_modifier_from_file(_py_file)
                 if _name_id in _repository:
-                    raise KeyError(f"More than one modifier uses the "
-                                   f"name_id '{_name_id}'")
+                    print(f"Modifier '{_name_id}' already in repository")
+                    continue
                 _repository[_name_id] = _template
+                # Append to the sub-folders structure.
+                _folder_depth = 0
+                _sub_structure = _structure
+                _relative_path = _py_file.relative_to(directory)
+                _sub_folders = _relative_path.parts
+                while _folder_depth + 1 < len(_sub_folders):
+                    _sub_folder = _sub_folders[_folder_depth]
+                    if _sub_folder not in _sub_structure:
+                        _sub_structure[_sub_folder] = dict()
+                    _sub_structure = _sub_structure[_sub_folder]
+                    _folder_depth += 1
+                _sub_structure[_name_id] = _name_id
                 print(f"Loaded modifier '{_name_id}' in repository")
 
     def load_modifier_from_file(self,
