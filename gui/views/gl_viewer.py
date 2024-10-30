@@ -6,10 +6,13 @@ an OpenGL context for displaying renders and media.
 """
 
 from pathlib import Path
+
 import numpy as np
 from OpenGL import GL
 from PySide6.QtWidgets import QWidget
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtGui import QWheelEvent, QMouseEvent
+from PySide6.QtCore import Qt, QPointF
 
 from utils.config import Config
 from utils.image import Image
@@ -32,16 +35,30 @@ class GLViewer(QOpenGLWidget):
     _zoom: float
     _center_x: float
     _center_y: float
+    _fitting_zoom: bool
+    _fitting_zoom_max: float
+    _mouse_middle_dragging: bool
+    _mouse_last_position: QPointF
     _checkerboard: bool
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
+        self._image = None
         self._zoom = 1
         self._center_x = .5
         self._center_y = .5
-        self._image = None
+        self._fitting_zoom = False
+        self._fitting_zoom_max = None
+        self._mouse_middle_dragging = False
+        self._mouse_last_position = None
         self._checkerboard = True
     
+    def __del__(self):
+        """Clean up OpenGL objects."""
+        GL.glDeleteTextures(1, [self._texture_id])
+        GL.glDeleteVertexArrays(1, [self._vao])
+        GL.glDeleteProgram(self._program)
+
     def initializeGL(self):
         """Setup OpenGL, program and geometry."""
         _qt_color = self.palette().color(self.backgroundRole())
@@ -55,7 +72,6 @@ class GLViewer(QOpenGLWidget):
         self.init_quad()
         self.init_texture()
 
-
         ##############
         # TEST       #
         ##############
@@ -67,12 +83,12 @@ class GLViewer(QOpenGLWidget):
         ModifierService().add_modifier_to_layer(_modifier, _layer)
         LayerService().add_layer_to_sequence(_layer, _sequence)
         self._image = RenderService().render_sequence_frame(_sequence)
-
-
     
     def resizeGL(self, width: int, height: int):
         """React to resizing."""
         GL.glViewport(0, 0, width, height)
+        if self._fitting_zoom:
+            self.fit_to_frame(self._fitting_zoom_max, False)
     
     def init_shaders(self):
         """Compile shaders and create program."""
@@ -170,6 +186,7 @@ class GLViewer(QOpenGLWidget):
                                  4 * _vertices.itemsize,
                                  GL.ctypes.c_void_p(2 * _vertices.itemsize))
         GL.glBindVertexArray(0)
+        GL.glDeleteBuffers(1, [_vbo])
 
     def init_texture(self):
         """Initialize the OpenGL texture used to display the image."""
@@ -245,4 +262,117 @@ class GLViewer(QOpenGLWidget):
             [0, 0, 0, 1]
         ], dtype=np.float32)
         return _transform
-        
+
+    def set_zoom(self, value: float):
+        self._zoom = max(Config().viewer.min_zoom,
+                         min(value, Config().viewer.max_zoom))
+
+    def get_zoom(self) -> float:
+        """Return the zoom value."""
+        return self._zoom
+
+    def fit_to_frame(self, max_zoom: float = None, update: bool = True):
+        """Set the viewer to fit its contents."""
+        self._center_x = .5
+        self._center_y = .5
+        if self._image is not None:
+            _padding = Config().viewer.fit_padding
+            _width = self.width() - 2*_padding
+            _height = self.height() - 2*_padding
+            _img_width = self._image.get_width()
+            _img_height = self._image.get_height()
+            _zoom = min(_width/_img_width, _height/_img_height)
+            if max_zoom is not None:
+                _zoom = min(_zoom, max_zoom)
+            self.set_zoom(_zoom)
+        self._fitting_zoom = True
+        self._fitting_zoom_max = max_zoom
+        if update:
+            self.update()
+	
+    def choose_zoom(self, zoom: float):
+        """Choose a specific zoom value."""
+        self.set_zoom(zoom)
+        self._fitting_zoom = False
+        self.update()
+
+    def widget_to_image_coords(self,
+                               widget_x: float,
+                               widget_y: float
+                               ) -> tuple[float, float]:
+        """Convert widget coordinates to image coordinates."""
+        _img_width = self._image.get_width()
+        _img_height = self._image.get_height()
+        _img_x = (widget_x - self.width()/2) / self._zoom
+        _img_y = (widget_y - self.height()/2) / self._zoom
+        _img_x += self._center_x*_img_width
+        _img_y += self._center_y*_img_height
+        return _img_x, _img_y
+    
+    def image_to_widget_coords(self,
+                               img_x: float,
+                               img_y: float
+                               ) -> tuple[float, float]:
+        """Convert image coordinates to widget coordinates."""
+        _img_width = self._image.get_width()
+        _img_height = self._image.get_height()
+        _widget_x = (img_x - self._center_x*_img_width) * self._zoom
+        _widget_y = (img_y - self._center_y*_img_height) * self._zoom
+        _widget_x += self.width()/2
+        _widget_y += self.height()/2
+        return _widget_x, _widget_y
+    
+    def wheel_scroll(self, event: QWheelEvent):
+        """Handle the wheel scroll event."""
+        if self._image is None:
+            return
+        _delta = event.angleDelta().y()
+        _mouse_pos = event.position()
+        _img_x, _img_y = self.widget_to_image_coords(_mouse_pos.x(),
+                                                        _mouse_pos.y())
+        _img_width = self._image.get_width()
+        _img_height = self._image.get_height()
+        _factor = np.exp(_delta / 100. * Config().viewer.zoom_sensitivity)
+        self.set_zoom(self._zoom * _factor)
+        if Config().viewer.zoom_around_cursor:
+            self._center_x = _img_x/_img_width - (
+                _img_x/_img_width - self._center_x)/_factor
+            self._center_y = _img_y/_img_height - (
+                _img_y/_img_height - self._center_y)/_factor
+        self._fitting_zoom = False
+        self.update()
+    
+    def mousePressEvent(self, event: QMouseEvent):
+        """Handle the mouse press event."""
+        if self._image is None:
+            return
+        if event.button() == Qt.MiddleButton:
+            self._mouse_middle_dragging = True
+            self._mouse_last_position = event.position()
+            self.setCursor(Qt.ClosedHandCursor)
+    
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        """Handle the mouse release event."""
+        if event.button() == Qt.MiddleButton:
+            self._mouse_middle_dragging = False
+            self.setCursor(Qt.ArrowCursor)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """Handle the mouse move event."""
+        if self._image is None:
+            return
+        if self._mouse_middle_dragging:
+            _current_pos = event.position()
+            _delta = _current_pos - self._mouse_last_position
+            self.middle_mouse_button_drag(_delta)
+            self._mouse_last_position = _current_pos
+
+    def middle_mouse_button_drag(self, delta: float):
+        """Drag using middle mouse button."""
+        if self._image is None:
+            return
+        _img_width = self._image.get_width()
+        _img_height = self._image.get_height()
+        self._center_x -= delta.x() / self._zoom / _img_width
+        self._center_y -= delta.y() / self._zoom / _img_height
+        self.update()

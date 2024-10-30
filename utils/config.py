@@ -33,6 +33,11 @@ class Config(metaclass=Singleton):
         self.store(config, "viewer", "checkerboard_size", float)
         self.store(config, "viewer", "checkerboard_color_a", float)
         self.store(config, "viewer", "checkerboard_color_b", float)
+        self.store(config, "viewer", "min_zoom", float)
+        self.store(config, "viewer", "max_zoom", float)
+        self.store(config, "viewer", "fit_padding", float)
+        self.store(config, "viewer", "zoom_around_cursor", bool)
+        self.store(config, "viewer", "zoom_sensitivity", float)
     
     def store(self,
               config: ConfigParser,

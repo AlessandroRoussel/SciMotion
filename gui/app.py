@@ -1,8 +1,4 @@
-"""
-Service concerning the app in general.
-
-The AppService focuses on the GUI app.
-"""
+"""Main QApplication for the app."""
 
 import sys
 
@@ -13,14 +9,14 @@ from utils.singleton import Singleton
 from utils.config import Config
 
 
-class AppService(metaclass=Singleton):
-    """Service concerning the app in general."""
+class App(QApplication):
+    """Main QApplication for the app."""
 
-    def initialize_app(self):
+    def __init__(self):
         """Initialize the app."""
-        _app = QApplication()
+        super().__init__()
         _main_window = MainWindow()
-        _screens = _app.screens()
+        _screens = self.screens()
         if Config().window.second_screen and len(_screens) > 1:
             _second_screen = _screens[1]
             _screen_geometry = _second_screen.geometry()
@@ -30,4 +26,4 @@ class AppService(metaclass=Singleton):
             _main_window.showMaximized()
         else:
             _main_window.show()
-        sys.exit(_app.exec())
+        sys.exit(self.exec())
