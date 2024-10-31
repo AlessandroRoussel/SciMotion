@@ -2,10 +2,9 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication, QStyleFactory
+from PySide6.QtWidgets import QApplication
 from gui.views.main_window import MainWindow
 
-from utils.singleton import Singleton
 from utils.config import Config
 
 
@@ -15,6 +14,11 @@ class App(QApplication):
     def __init__(self):
         """Initialize the app."""
         super().__init__()
+
+        ########
+        # TEST #
+        ########
+
         _main_window = MainWindow()
         _screens = self.screens()
         if Config().window.second_screen and len(_screens) > 1:

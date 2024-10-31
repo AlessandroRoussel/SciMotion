@@ -8,29 +8,26 @@ keyframing, interpolating between keyframes...
 
 from typing import Union
 
-from utils.singleton import Singleton
 from data_types.data_type import DataType
 from core.entities.parameter import Parameter
 from core.entities.keyframe import Keyframe
 
 
-class AnimationService(metaclass=Singleton):
+class AnimationService():
     """Service concerning animation in general."""
 
-    def __init__(self):
-        # TODO : load configuration if needed
-        pass
-
-    def add_keyframe(self, parameter: Parameter, keyframe: Keyframe):
+    @classmethod
+    def add_keyframe(cls, parameter: Parameter, keyframe: Keyframe):
         """Add a keyframe to a parameter."""
         if parameter.accepts_keyframes():
             _frame = keyframe.get_frame()
-            self.remove_keyframe_at_frame(parameter, _frame)
+            cls.remove_keyframe_at_frame(parameter, _frame)
             _list = parameter.get_keyframe_list()
             _list.append(keyframe)
             _list.sort(key=lambda _keyframe: _keyframe.get_frame())
 
-    def remove_keyframe_at_frame(self, parameter: Parameter, frame: int):
+    @staticmethod
+    def remove_keyframe_at_frame(parameter: Parameter, frame: int):
         """Remove a potential keyframe at a given frame."""
         if parameter.accepts_keyframes():
             _list = parameter.get_keyframe_list()
@@ -42,8 +39,8 @@ class AnimationService(metaclass=Singleton):
                 if _frame >= frame:
                     break
 
-    def get_value_at_frame(self,
-                           parameter: Parameter,
+    @staticmethod
+    def get_value_at_frame(parameter: Parameter,
                            frame: Union[int, float]) -> DataType:
         """Retrieve the value of a parameter at a given frame."""
         if not parameter.accepts_keyframes():

@@ -9,9 +9,7 @@ of layers within a Sequence...
 
 import moderngl
 import numpy as np
-import matplotlib.pyplot as plt
 
-from utils.singleton import Singleton
 from core.entities.modifier_repository import ModifierRepository
 from core.entities.modifier import Modifier
 from core.entities.render_context import RenderContext
@@ -22,19 +20,15 @@ from core.entities.gl_context import GLContext
 from utils.image import Image
 
 
-class RenderService(metaclass=Singleton):
+class RenderService():
     """Service concerning rendering in general."""
 
-    def __init__(self):
-        # TODO : load configuration if needed
-        pass
-
-    def apply_modifier_to_render_context(self,
-                                         modifier: Modifier,
+    @staticmethod
+    def apply_modifier_to_render_context(modifier: Modifier,
                                          context: RenderContext):
         """Execute the action of a Modifier on a RenderContext."""
         _name_id = modifier.get_template_id()
-        _modifier_template = ModifierRepository().get_template(_name_id)
+        _modifier_template = ModifierRepository.get_template(_name_id)
         _function = _modifier_template.get_apply_function()
         _arguments = []
         for _parameter in modifier.get_parameter_list():
@@ -42,12 +36,13 @@ class RenderService(metaclass=Singleton):
             _arguments.append(_raw_data.get_value())
         _function(context, *_arguments)
 
-    def _image_from_texture(self, texture: moderngl.Texture) -> Image:
+    @staticmethod
+    def _image_from_texture(texture: moderngl.Texture) -> Image:
         """Extract an Image object from a moderngl Texture."""
         return Image(texture.width, texture.height, data_bytes=texture.read())
 
-    def _texture_from_image(self,
-                            gl_context: moderngl.Context,
+    @staticmethod
+    def _texture_from_image(gl_context: moderngl.Context,
                             image: Image
                             ) -> moderngl.Texture:
         """Create a moderngl Texture from an Image."""
@@ -57,14 +52,16 @@ class RenderService(metaclass=Singleton):
         _texture = gl_context.texture((_width, _height), 4, _data, dtype="f4")
         return _texture
 
-    def render_visual_layer(self, layer: VisualLayer) -> Image:
+    @classmethod
+    def render_visual_layer(cls, layer: VisualLayer) -> Image:
         """Render a VisualLayer to an Image."""
         if isinstance(layer, SolidLayer):
-            return self.render_solid_layer(layer)
+            return cls.render_solid_layer(layer)
         raise NotImplementedError(f"Rendering method for '{layer.__class__}' "
                                   f"not implemented")
 
-    def render_solid_layer(self, layer: SolidLayer) -> Image:
+    @classmethod
+    def render_solid_layer(cls, layer: SolidLayer) -> Image:
         """Render a SolidLayer to an Image."""
         _width = layer.get_width()
         _height = layer.get_height()
@@ -79,34 +76,35 @@ class RenderService(metaclass=Singleton):
         _context.set_src_texture(_texture)
 
         for _modifier in layer.get_modifier_list():
-            self.apply_modifier_to_render_context(_modifier, _context)
+            cls.apply_modifier_to_render_context(_modifier, _context)
             _context.roll_textures()
 
-        return self._image_from_texture(_context.get_src_texture())
+        return cls._image_from_texture(_context.get_src_texture())
 
-    def render_sequence_frame(self, sequence: Sequence) -> Image:
+    @classmethod
+    def render_sequence_frame(cls, sequence: Sequence) -> Image:
         """Render a frame of a Sequence to an Image."""
         _width = sequence.get_width()
         _height = sequence.get_height()
-        _gl_context = GLContext().get_context()
+        _gl_context = GLContext.get_context()
         _empty_data = np.zeros((_height, _width, 4), dtype="f4")
         _result_texture = _gl_context.texture(
             (_width, _height), 4, _empty_data.tobytes(), dtype="f4")
         _layer_list = sequence.get_layer_list()
         for _layer in _layer_list:
             if isinstance(_layer, VisualLayer):
-                _image = self.render_visual_layer(_layer)
-                _texture = self._texture_from_image(_gl_context, _image)
-                _transformed_texture = self._transform_visual_layer_texture(
+                _image = cls.render_visual_layer(_layer)
+                _texture = cls._texture_from_image(_gl_context, _image)
+                _transformed_texture = cls._transform_visual_layer_texture(
                     _layer, _texture, _width, _height)
-                self._composite_over(_transformed_texture, _result_texture)
-        return self._image_from_texture(_result_texture)
+                cls._composite_over(_transformed_texture, _result_texture)
+        return cls._image_from_texture(_result_texture)
 
-    def _composite_over(self,
-                        texture_a: moderngl.Texture,
+    @staticmethod
+    def _composite_over(texture_a: moderngl.Texture,
                         texture_b: moderngl.Texture):
         """Composite two equal size moderngl Texture on top of each other."""
-        _gl_context = GLContext().get_context()
+        _gl_context = GLContext.get_context()
         # TODO : avoid building the blend mode shader every time
         _glsl_code = """
         #version 430
@@ -136,14 +134,14 @@ class RenderService(metaclass=Singleton):
         _compute_shader = _gl_context.compute_shader(_glsl_code)
         _compute_shader.run(texture_b.width, texture_b.height, 1)
 
-    def _transform_visual_layer_texture(self,
-                                        visual_layer: VisualLayer,
+    @staticmethod
+    def _transform_visual_layer_texture(visual_layer: VisualLayer,
                                         texture: moderngl.Texture,
                                         out_width: int,
                                         out_height: int
                                         ) -> moderngl.Texture:
         """Transform a texture based on a VisualLayer geometry."""
-        _gl_context = GLContext().get_context()
+        _gl_context = GLContext.get_context()
         _tex_width = texture.width
         _tex_height = texture.height
 

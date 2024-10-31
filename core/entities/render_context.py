@@ -28,7 +28,7 @@ class RenderContext:
 
     def get_gl_context(self) -> moderngl.Context:
         """Return the moderngl context."""
-        return GLContext().get_context()
+        return GLContext.get_context()
 
     def get_width(self) -> int:
         """Return the width of the Layer."""

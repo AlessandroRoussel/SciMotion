@@ -1,106 +1,45 @@
 """
 A pane for viewing images and video sequences.
 
-The ViewerPane inherits from QFrame and provides the user with
-an interactive visualization pane for viewing sequences and media.
-It holds a GLViewer widget which displays images with OpenGL.
+The ViewerPane inherits from QTabWidget and provides the user with
+a tabbed pane for viewing sequences and media. It holds ViewerTab
+objects which can display media or sequences.
 """
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QFrame, QComboBox, QVBoxLayout, QToolBar,
-                               QWidget)
-from PySide6.QtGui import QWheelEvent
+from PySide6.QtWidgets import (QTabWidget, QWidget)
 
+from gui.views.viewer.viewer_tab import ViewerTab
+from core.entities.project import Project
+from gui.services.sequence_gui_service import SequenceGUIService
+from core.entities.sequence import Sequence
+from core.entities.solid_layer import SolidLayer
+from core.services.render_service import RenderService
+from core.services.layer_service import LayerService
+from core.services.modifier_service import ModifierService
+from data_types.color import Color
 from gui.views.viewer.gl_viewer import GLViewer
 
 
-class ViewerPane(QFrame):
+class ViewerPane(QTabWidget):
     """A pane for viewing images and video sequences."""
 
-    _gl_viewer: GLViewer
-    _zoom_list: QComboBox
-    _zoom_list_length: int
+    _tabs: dict[int, int]  # dict(tab id => sequence id)
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        _layout = QVBoxLayout()
-        _layout.setContentsMargins(0,0,0,0)
-        _layout.setSpacing(0)
-        self.setLayout(_layout)
+        self._tabs = dict()
+        SequenceGUIService.open_sequence_signal.connect(self.open_sequence)
 
-        self._gl_viewer = GLViewer(self)
-        self.link_gl_viewer_function()
-        _tool_bar = self.create_tool_bar()
-
-        _layout.addWidget(self._gl_viewer)
-        _layout.addWidget(_tool_bar)
-    
-    def link_gl_viewer_function(self):
-        """Link GLViewer functions to ViewerPane functions."""
-        self._gl_viewer.wheelEvent = self.scroll_gl_viewer
-    
-    def scroll_gl_viewer(self, event: QWheelEvent):
-        """Handle scrolling the GLViewer pane."""
-        self._gl_viewer.wheel_scroll(event)
-        self.update_zoom_value()
-
-    def create_tool_bar(self) -> QToolBar:
-        """Create the viewer tool bar."""
-        _tool_bar = QToolBar("Viewer toolbar", self)
-        _base_color = self.palette().base().color()
-        _tool_bar.setStyleSheet("QToolBar {"
-                                f"background-color: {_base_color.name()};"
-                                "}")
-
-        self._zoom_list = QComboBox(self)
-        self._zoom_list.addItem("Fit to frame")
-        self._zoom_list.addItem("Fit up to 100%")
-        
-        self._zoom_list.insertSeparator(2)
-        
-        self._zoom_list.addItem("50%")
-        self._zoom_list.addItem("100%")
-        self._zoom_list.addItem("200%")
-        
-        self._zoom_list_length = self._zoom_list.count()
-        self._zoom_list.currentIndexChanged.connect(self.choose_zoom)
-        
-        _tool_bar.addWidget(self._zoom_list)
-        self._zoom_list.setCurrentIndex(4)
-        _tool_bar.setOrientation(Qt.Horizontal)
-        return _tool_bar
-    
-    def choose_zoom(self, index: int):
-        """Choose a value in the zoom list."""
-        self.remove_custom_zoom()
-        if index == 0:
-            self._gl_viewer.fit_to_frame()
-        elif index == 1:
-            self._gl_viewer.fit_to_frame(max_zoom=1)
-        elif index == 3:
-            self._gl_viewer.choose_zoom(.5)
-            self.update_zoom_value()
-        elif index == 4:
-            self._gl_viewer.choose_zoom(1)
-            self.update_zoom_value()
-        elif index == 5:
-            self._gl_viewer.choose_zoom(2)
-            self.update_zoom_value()
-
-    def remove_custom_zoom(self):
-        """Remove the custom zoom option in the zoom list."""
-        self._zoom_list.blockSignals(True)
-        if self._zoom_list.count() > self._zoom_list_length:
-            self._zoom_list.removeItem(self._zoom_list_length)
-        self._zoom_list.blockSignals(False)
-
-    def update_zoom_value(self):
-        """Update the currently displayed zoom value."""
-        _zoom = self._gl_viewer.get_zoom()
-        self.remove_custom_zoom()
-        self._zoom_list.blockSignals(True)
-        _text = f"{round(_zoom*100)}%"
-        if self._zoom_list.findText(_text) == -1:
-            self._zoom_list.addItem(_text)
-            self._zoom_list.setCurrentIndex(self._zoom_list_length)
-        self._zoom_list.blockSignals(False)
+    def open_sequence(self, sequence_id: int):
+        """Open a tab for viewing a sequence in the project."""
+        if sequence_id in self._tabs.values():
+            _tab_id = list(self._tabs.keys())[
+                list(self._tabs.values()).index(sequence_id)]
+            self.setCurrentIndex(_tab_id)
+            return
+        _sequence = Project.get_sequence_dict()[sequence_id]
+        _viewer_tab = ViewerTab(self, sequence_id)
+        self.addTab(_viewer_tab, _sequence.get_title())
+        _tab_id = self.count()-1
+        self._tabs[_tab_id] = sequence_id
+        self.setCurrentIndex(_tab_id)

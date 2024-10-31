@@ -12,7 +12,6 @@ from pathlib import Path
 import importlib.util
 import inspect
 
-from utils.singleton import Singleton
 from data_types.data_type_name import DataTypeName
 from core.entities.modifier_template import ModifierTemplate, ModifierFlags
 from core.entities.modifier_repository import ModifierRepository
@@ -21,26 +20,29 @@ from core.entities.parameter import Parameter
 from core.entities.modifier import Modifier
 from core.entities.layer import Layer
 
+from utils.config import Config
 
-class ModifierService(metaclass=Singleton):
+
+class ModifierService():
     """Service concerning modifiers in general."""
 
+    _loaded: bool = False
     _modifier_count = 0
 
-    def __init__(self):
-        # TODO : load configuration if needed
-        pass
-
-    def load_modifiers_from_directory(self, directory: Path):
-        """Load all modifiers from a directory into the ModifierRepository."""
-        if not directory.is_dir():
+    @classmethod
+    def load_modifiers_from_directory(cls):
+        """Load modifiers from the directory into the ModifierRepository."""
+        if cls._loaded:
+            return
+        _directory = Path(Config().app.modifiers_directory)
+        if not _directory.is_dir():
             raise ValueError(f"Trying to load modifiers from "
-                             f"invalid directory '{directory}'")
-        _repository = ModifierRepository().get_repository()
-        _structure = ModifierRepository().get_structure()
-        for _py_file in directory.rglob("*.py"):
+                             f"invalid directory '{_directory}'")
+        _repository = ModifierRepository.get_repository()
+        _structure = ModifierRepository.get_structure()
+        for _py_file in _directory.rglob("*.py"):
             if _py_file.is_file():
-                _name_id, _template = self.load_modifier_from_file(_py_file)
+                _name_id, _template = cls.load_modifier_from_file(_py_file)
                 if _name_id in _repository:
                     print(f"Modifier '{_name_id}' already in repository")
                     continue
@@ -48,7 +50,7 @@ class ModifierService(metaclass=Singleton):
                 # Append to the sub-folders structure.
                 _folder_depth = 0
                 _sub_structure = _structure
-                _relative_path = _py_file.relative_to(directory)
+                _relative_path = _py_file.relative_to(_directory)
                 _sub_folders = _relative_path.parts
                 while _folder_depth + 1 < len(_sub_folders):
                     _sub_folder = _sub_folders[_folder_depth]
@@ -58,8 +60,10 @@ class ModifierService(metaclass=Singleton):
                     _folder_depth += 1
                 _sub_structure[_name_id] = _name_id
                 print(f"Loaded modifier '{_name_id}' in repository")
+        cls._loaded = True
 
-    def load_modifier_from_file(self,
+    @classmethod
+    def load_modifier_from_file(cls,
                                 py_file: Path
                                 ) -> tuple[str, ModifierTemplate]:
         """Load a modifier given its python file."""
@@ -70,10 +74,10 @@ class ModifierService(metaclass=Singleton):
 
         # Load the modifier as a python module
         _spec = importlib.util.spec_from_file_location(
-            f"modifier_{self._modifier_count}", py_file)
+            f"modifier_{cls._modifier_count}", py_file)
         _module = importlib.util.module_from_spec(_spec)
         _spec.loader.exec_module(_module)
-        self._modifier_count += 1
+        cls._modifier_count += 1
 
         # Retrieve modifier attributes
         _name_id = getattr(_module, "_name_id", None)
@@ -103,7 +107,7 @@ class ModifierService(metaclass=Singleton):
         if not isinstance(_parameters_info, list):
             raise TypeError(f"Attribute '_parameters' in modifier "
                             f"'{_name_id}' should be a list of dict.")
-        _parameter_template_list = self._create_parameter_list(
+        _parameter_template_list = cls._create_parameter_list(
             _parameters_info, modifier_name_id=_name_id)
 
         # Retrieve _apply function
@@ -114,7 +118,7 @@ class ModifierService(metaclass=Singleton):
         if not callable(_apply_function):
             raise TypeError(f"Attribute '_apply' in modifier "
                             f"'{_name_id}' should be a function.")
-        self._inspect_apply_signature(_apply_function,
+        cls._inspect_apply_signature(_apply_function,
                                       _parameter_template_list,
                                       modifier_name_id=_name_id)
 
@@ -124,8 +128,8 @@ class ModifierService(metaclass=Singleton):
             parameter_template_list=_parameter_template_list)
         return _name_id, _modifier_template
 
-    def _create_parameter_list(self,
-                               info_list: list[dict],
+    @staticmethod
+    def _create_parameter_list(info_list: list[dict],
                                modifier_name_id: str = ""
                                ) -> list[ParameterTemplate]:
         """Create a list of ParameterTemplate from a list of dict."""
@@ -198,8 +202,8 @@ class ModifierService(metaclass=Singleton):
             _param_count += 1
         return _parameter_template_list
 
-    def _inspect_apply_signature(self,
-                                 apply_function: Callable,
+    @staticmethod
+    def _inspect_apply_signature(apply_function: Callable,
                                  template_list: list[ParameterTemplate],
                                  modifier_name_id: str = ""):
         """Check whether the signature of an '_apply' function is valid."""
@@ -224,9 +228,10 @@ class ModifierService(metaclass=Singleton):
                                 f"'{modifier_name_id}' should be "
                                 f"'{template_list[_i].get_name_id()}'")
 
-    def modifier_from_template(self, modifier_name_id: str) -> Modifier:
+    @staticmethod
+    def modifier_from_template(modifier_name_id: str) -> Modifier:
         """Create a Modifier based on a ModifierTemplate in the repository."""
-        _repository = ModifierRepository().get_repository()
+        _repository = ModifierRepository.get_repository()
         if modifier_name_id not in _repository:
             raise ValueError(f"Couldn't find '{modifier_name_id}'"
                              f"in the modifiers repository.")
@@ -247,7 +252,8 @@ class ModifierService(metaclass=Singleton):
         _modifier = Modifier(modifier_name_id, _parameter_list)
         return _modifier
 
-    def add_modifier_to_layer(self, modifier: Modifier, layer: Layer):
+    @staticmethod
+    def add_modifier_to_layer(modifier: Modifier, layer: Layer):
         """Add a Modifier to a Layer."""
         _modifier_list = layer.get_modifier_list()
         _modifier_list.append(modifier)

@@ -5,7 +5,8 @@ from typing import Callable
 from PySide6.QtGui import QIcon, QKeySequence, QAction
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QSplitter,
-                               QFrame, QStatusBar)
+                               QFrame, QStatusBar, QLayout)
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 from utils.config import Config
 from gui.views.main_tool_bar import MainToolBar
@@ -13,6 +14,7 @@ from gui.views.viewer.viewer_pane import ViewerPane
 from gui.views.explorer.explorer_pane import ExplorerPane
 from gui.views.timeline.timeline_pane import TimelinePane
 from gui.views.misc.misc_pane import MiscPane
+from gui.services.sequence_gui_service import SequenceGUIService
 
 
 class MainWindow(QMainWindow):
@@ -42,6 +44,8 @@ class MainWindow(QMainWindow):
         self.create_menu_bar()
         _tool_bar = MainToolBar(self)
         self.addToolBar(_tool_bar)
+
+        self.initialize_open_gl_context(_layout)
     
     def center(self):
         """Center the window in the current screen."""
@@ -58,7 +62,7 @@ class MainWindow(QMainWindow):
 
         # File menu
         _file = _menu.addMenu("&File")
-        _file.addAction(self.create_action("New project", None, "Ctrl+N"))
+        _file.addAction(self.create_action("New project", None))
         _file.addAction(self.create_action("Open project", None, "Ctrl+O"))
         _file.addSeparator()
         _file.addAction(self.create_action("Save project", None, "Ctrl+S"))
@@ -73,6 +77,21 @@ class MainWindow(QMainWindow):
         _edit.addAction(self.create_action("Cut", None, "Ctrl+X"))
         _edit.addAction(self.create_action("Copy", None, "Ctrl+C"))
         _edit.addAction(self.create_action("Paste", None, "Ctrl+V"))
+
+        # Sequence menu
+        _sequence = _menu.addMenu("&Sequence")
+        _sequence.addAction(
+            self.create_action("New sequence",
+                               SequenceGUIService.create_new_sequence,
+                               "Ctrl+N"))
+        _sequence.addSeparator()
+        _sequence.addAction(self.create_action("Sequence parameters", None))
+        
+        # Layer menu
+        _layer = _menu.addMenu("&Layer")
+        _layer.addAction(self.create_action("New solid layer", None, "Ctrl+Y"))
+        _layer.addSeparator()
+        _layer.addAction(self.create_action("Layer parameters", None, "Ctrl+Shift+Y"))
 
     def create_action(self,
                       title: str,
@@ -120,3 +139,11 @@ class MainWindow(QMainWindow):
         _left.setHandleWidth(Config().window.splitter_width)
         _main.setHandleWidth(Config().window.splitter_width)
         return _main
+    
+    def initialize_open_gl_context(self, layout: QLayout):
+        """Create and remove an OpenGL widget to initialize the context."""
+        _first_open_gl_context = QOpenGLWidget()
+        _first_open_gl_context.hide()
+        layout.addWidget(_first_open_gl_context)
+        layout.removeWidget(_first_open_gl_context)
+        del _first_open_gl_context

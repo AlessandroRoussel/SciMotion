@@ -20,6 +20,7 @@ class Config(metaclass=Singleton):
         self.store(config, "app", "icon", str)
         self.store(config, "app", "version_major", int)
         self.store(config, "app", "version_minor", int)
+        self.store(config, "app", "modifiers_directory", str)
 
         self.store(config, "window", "min_width", int)
         self.store(config, "window", "min_height", int)
@@ -38,6 +39,12 @@ class Config(metaclass=Singleton):
         self.store(config, "viewer", "fit_padding", float)
         self.store(config, "viewer", "zoom_around_cursor", bool)
         self.store(config, "viewer", "zoom_sensitivity", float)
+        
+        self.store(config, "sequence", "default_title", str)
+        self.store(config, "sequence", "default_width", int)
+        self.store(config, "sequence", "default_height", int)
+        self.store(config, "sequence", "default_frame_rate", float)
+        self.store(config, "sequence", "default_duration", int)
     
     def store(self,
               config: ConfigParser,

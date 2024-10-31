@@ -16,12 +16,6 @@ from PySide6.QtCore import Qt, QPointF, QRectF
 
 from utils.config import Config
 from utils.image import Image
-from core.entities.sequence import Sequence
-from core.entities.solid_layer import SolidLayer
-from core.services.render_service import RenderService
-from core.services.layer_service import LayerService
-from core.services.modifier_service import ModifierService
-from data_types.color import Color
 
 
 class GLViewer(QOpenGLWidget):
@@ -40,6 +34,7 @@ class GLViewer(QOpenGLWidget):
     _mouse_middle_dragging: bool
     _mouse_last_position: QPointF
     _checkerboard: bool
+    _texture_loaded: bool
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
@@ -51,41 +46,25 @@ class GLViewer(QOpenGLWidget):
         self._fitting_zoom_max = None
         self._mouse_middle_dragging = False
         self._mouse_last_position = None
-        self._checkerboard = True
+        self._texture_loaded = False
+        self._checkerboard = False
     
-    def __del__(self):
-        """Clean up OpenGL objects."""
-        GL.glDeleteTextures(1, [self._texture_id])
-        GL.glDeleteVertexArrays(1, [self._vao])
-        GL.glDeleteProgram(self._program)
+    def toggle_checkerboard(self, state: bool):
+        """Toggle transparency checkerboard status."""
+        self._checkerboard = state
+        self.update()
 
     def initializeGL(self):
         """Setup OpenGL, program and geometry."""
-        _qt_color = self.palette().window().color()
-        GL.glClearColor(_qt_color.redF(),
-                        _qt_color.greenF(),
-                        _qt_color.blueF(),
-                        1)
-        GL.glEnable(GL.GL_BLEND)
-        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         self.init_shaders()
         self.init_quad()
         self.init_texture()
-
-        ##############
-        # TEST       #
-        ##############
-
-        ModifierService().load_modifiers_from_directory(Path("modifiers"))
-        _sequence = Sequence("", 960, 540, 0, 0)
-        _layer = SolidLayer("", 0, 0, 960, 540, Color.BLACK)
-        _modifier = ModifierService().modifier_from_template("linear_gradient")
-        ModifierService().add_modifier_to_layer(_modifier, _layer)
-        _modifier = ModifierService().modifier_from_template("unmultiply")
-        ModifierService().add_modifier_to_layer(_modifier, _layer)
-        LayerService().add_layer_to_sequence(_layer, _sequence)
-        self._image = RenderService().render_sequence_frame(_sequence)
     
+    def set_image(self, image: Image):
+        """Set the displayed image."""
+        self._image = image
+        self._texture_loaded = False
+
     def resizeGL(self, width: int, height: int):
         """React to resizing."""
         GL.glViewport(0, 0, width, height)
@@ -206,6 +185,8 @@ class GLViewer(QOpenGLWidget):
 
     def load_texture_from_image(self):
         """Load the image into the OpenGL texture."""
+        if self._texture_loaded:
+            return
         GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture_id)
         GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA32F,
                         self._image.get_width(),
@@ -213,12 +194,17 @@ class GLViewer(QOpenGLWidget):
                         0, GL.GL_RGBA, GL.GL_FLOAT,
                         self._image.get_data_bytes())
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        self._texture_loaded = True
 
     def paintGL(self):
         """Paint the OpenGL context."""
+        _qt_color = self.palette().window().color()
+        GL.glClearColor(_qt_color.redF(), _qt_color.greenF(),
+                        _qt_color.blueF(), 1)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         if self._image is not None:
-            # TODO : not load texture every time, but only when changing image
             self.load_texture_from_image()
             GL.glUseProgram(self._program)
             GL.glBindVertexArray(self._vao)
@@ -273,7 +259,10 @@ class GLViewer(QOpenGLWidget):
         """Return the zoom value."""
         return self._zoom
 
-    def fit_to_frame(self, max_zoom: float = None, update: bool = True):
+    def fit_to_frame(self,
+                     max_zoom: float = None,
+                     update: bool = True,
+                     just_once: bool = False):
         """Set the viewer to fit its contents."""
         self._center_x = .5
         self._center_y = .5
@@ -287,7 +276,7 @@ class GLViewer(QOpenGLWidget):
             if max_zoom is not None:
                 _zoom = min(_zoom, max_zoom)
             self.set_zoom(_zoom)
-        self._fitting_zoom = True
+        self._fitting_zoom = not just_once
         self._fitting_zoom_max = max_zoom
         if update:
             self.update()

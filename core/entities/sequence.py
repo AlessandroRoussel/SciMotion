@@ -40,6 +40,18 @@ class Sequence:
     def get_height(self) -> int:
         """Return the sequence height."""
         return self._height
+    
+    def get_title(self) -> str:
+        """Return the sequence title."""
+        return self._title
+    
+    def get_frame_rate(self) -> float:
+        """Return the sequence frame rate."""
+        return self._frame_rate
+    
+    def get_duration(self) -> int:
+        """Return the sequence duration."""
+        return self._duration
 
     def get_layer_list(self) -> list[Layer]:
         """Return a reference to the layer list."""
