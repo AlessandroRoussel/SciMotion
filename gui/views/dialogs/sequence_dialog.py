@@ -47,16 +47,11 @@ class SequenceDialog(QDialog):
         self.setFixedSize(QSize(400, 250))
         _layout = QVBoxLayout()
         _layout.setContentsMargins(40, 20, 40, 20)
-        
-        _frame = QFrame(self)
-        _frame_layout = QVBoxLayout()
-        _frame_layout.setContentsMargins(10, 10, 10, 10)
-        _frame.setLayout(_frame_layout)
-        _frame.setFrameShape(QFrame.Box)
 
         # Line edits:
         self._title_input = TextInput(self, _title, not_empty=True)
         self._title_input.textChanged.connect(self.validate_inputs)
+        self._title_input.selectAll()
 
         self._width_input = IntInput(self, _width, min=1)
         self._width_input.textChanged.connect(self.validate_inputs)
@@ -73,20 +68,16 @@ class SequenceDialog(QDialog):
             self._duration_input.format)
         
         # Add line edits to layouts:
-        _title_layout = self.create_input_layout(
-            "Sequence title", self._title_input)
-        _title_layout.addStretch()
-        _layout.addLayout(_title_layout)
-        _frame_layout.addLayout(
+        _layout.addLayout(
+            self.create_input_layout("Title", self._title_input))
+        _layout.addLayout(
             self.create_input_layout("Width (px)", self._width_input))
-        _frame_layout.addLayout(
+        _layout.addLayout(
             self.create_input_layout("Height (px)", self._height_input))
-        _frame_layout.addLayout(
+        _layout.addLayout(
             self.create_input_layout("Frame rate (f/s)", self._frame_rate_input))
-        _frame_layout.addLayout(
+        _layout.addLayout(
             self.create_input_layout("Duration", self._duration_input))
-
-        _layout.addWidget(_frame)
         
         # Buttons:
         _button_layout = QHBoxLayout()
@@ -96,8 +87,8 @@ class SequenceDialog(QDialog):
         _cancel_button.clicked.connect(self.reject)
         self._ok_button.clicked.connect(self.accept)
         _button_layout.addStretch()
-        _button_layout.addWidget(self._ok_button)
         _button_layout.addWidget(_cancel_button)
+        _button_layout.addWidget(self._ok_button)
         _layout.addLayout(_button_layout)
         self._ok_button.setDefault(True)
 

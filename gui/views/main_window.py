@@ -14,7 +14,7 @@ from gui.views.viewer.viewer_pane import ViewerPane
 from gui.views.explorer.explorer_pane import ExplorerPane
 from gui.views.timeline.timeline_pane import TimelinePane
 from gui.views.misc.misc_pane import MiscPane
-from gui.services.sequence_gui_service import SequenceGUIService
+from gui.views.main_menu_bar import MainMenuBar
 
 
 class MainWindow(QMainWindow):
@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         _layout.addWidget(_panes)
 
         self.setStatusBar(QStatusBar(self))
-        self.create_menu_bar()
+        self.setMenuBar(MainMenuBar(self))
         _tool_bar = MainToolBar(self)
         self.addToolBar(_tool_bar)
 
@@ -55,56 +55,6 @@ class MainWindow(QMainWindow):
         _qr = self.frameGeometry()
         _qr.moveCenter(_screen_center)
         self.move(_qr.topLeft())
-
-    def create_menu_bar(self):
-        """Create the menu bar."""
-        _menu = self.menuBar()
-
-        # File menu
-        _file = _menu.addMenu("&File")
-        _file.addAction(self.create_action("New project", None))
-        _file.addAction(self.create_action("Open project", None, "Ctrl+O"))
-        _file.addSeparator()
-        _file.addAction(self.create_action("Save project", None, "Ctrl+S"))
-        _file.addAction(self.create_action("Save project as", None, "Ctrl+Shift+S"))
-        _file.addSeparator()
-        _file.addAction(self.create_action("Project parameters", None, "Ctrl+P"))
-        _file.addSeparator()
-        _file.addAction(self.create_action("Close", None, "Ctrl+Q"))
-
-        # Edit menu
-        _edit = _menu.addMenu("&Edit")
-        _edit.addAction(self.create_action("Cut", None, "Ctrl+X"))
-        _edit.addAction(self.create_action("Copy", None, "Ctrl+C"))
-        _edit.addAction(self.create_action("Paste", None, "Ctrl+V"))
-
-        # Sequence menu
-        _sequence = _menu.addMenu("&Sequence")
-        _sequence.addAction(
-            self.create_action("New sequence",
-                               SequenceGUIService.create_new_sequence,
-                               "Ctrl+N"))
-        _sequence.addSeparator()
-        _sequence.addAction(self.create_action("Sequence parameters", None))
-        
-        # Layer menu
-        _layer = _menu.addMenu("&Layer")
-        _layer.addAction(self.create_action("New solid layer", None, "Ctrl+Y"))
-        _layer.addSeparator()
-        _layer.addAction(self.create_action("Layer parameters", None, "Ctrl+Shift+Y"))
-
-    def create_action(self,
-                      title: str,
-                      function: Callable,
-                      shortcut: str = None
-                      ) -> QAction:
-        """Create a QAction for the menu bar."""
-        _action = QAction(title, self)
-        _action.setStatusTip(title)
-        _action.triggered.connect(function)
-        if shortcut is not None:
-            _action.setShortcut(QKeySequence(shortcut))
-        return _action
 
     def create_main_panes(self) -> QSplitter:
         """Create the main panes and splitters."""
