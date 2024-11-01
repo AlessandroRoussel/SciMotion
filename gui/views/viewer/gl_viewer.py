@@ -5,14 +5,12 @@ The GLViewer inherits from QOpenGLWidget and provides
 an OpenGL context for displaying renders and media.
 """
 
-from pathlib import Path
-
 import numpy as np
 from OpenGL import GL
 from PySide6.QtWidgets import QWidget
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtGui import QWheelEvent, QMouseEvent, QRegion, QPainterPath
-from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtGui import QWheelEvent, QMouseEvent
+from PySide6.QtCore import Qt, QPointF
 
 from utils.config import Config
 from utils.image import Image

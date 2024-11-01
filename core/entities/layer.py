@@ -31,3 +31,15 @@ class Layer:
     def get_modifier_list(self) -> list[Modifier]:
         """Return a reference to the modifier list."""
         return self._modifier_list
+
+    def get_start_frame(self) -> int:
+        """Return the layer start frame."""
+        return self._start_frame
+
+    def get_end_frame(self) -> int:
+        """Return the layer end frame."""
+        return self._end_frame
+
+    def get_title(self) -> str:
+        """Return the layer title."""
+        return self._title

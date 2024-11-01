@@ -40,7 +40,7 @@ class SequenceGUIService():
         return _image
 
     @classmethod
-    def focus_sequence(cls, sequence_id=None):
+    def focus_sequence(cls, sequence_id: int=None):
         """Set which sequence is currently focused."""
         cls._focused_sequence = sequence_id
         cls.focus_sequence_signal.emit(sequence_id)

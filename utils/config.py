@@ -45,6 +45,11 @@ class Config(metaclass=Singleton):
         self.store(config, "sequence", "default_height", int)
         self.store(config, "sequence", "default_frame_rate", float)
         self.store(config, "sequence", "default_duration", int)
+
+        self.store(config, "timeline", "side_panel_width", int)
+        self.store(config, "timeline", "layer_height", int)
+        self.store(config, "timeline", "layer_spacing", int)
+        self.store(config, "timeline", "max_pixels_per_frame", int)
     
     def store(self,
               config: ConfigParser,
