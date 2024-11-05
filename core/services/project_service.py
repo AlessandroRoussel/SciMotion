@@ -10,7 +10,7 @@ from core.entities.project import Project
 from core.entities.sequence import Sequence
 
 
-class ProjectService():
+class ProjectService:
     """Service concerning the project in general."""
 
     @staticmethod

@@ -20,7 +20,7 @@ from core.entities.gl_context import GLContext
 from utils.image import Image
 
 
-class RenderService():
+class RenderService:
     """Service concerning rendering in general."""
 
     @staticmethod

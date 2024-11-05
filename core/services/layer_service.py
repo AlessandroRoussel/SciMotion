@@ -10,7 +10,7 @@ from core.entities.layer import Layer
 from core.entities.sequence import Sequence
 
 
-class LayerService():
+class LayerService:
     """Service concerning layers in general."""
 
     @staticmethod

@@ -8,7 +8,7 @@ and holds a dict of sequences, media, and parameters.
 from core.entities.sequence import Sequence
 
 
-class Project():
+class Project:
     """Represents the project within the app."""
 
     _next_sequence_id: int = 0

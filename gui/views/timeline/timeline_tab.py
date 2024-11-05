@@ -6,155 +6,211 @@ a visual timeline within the TimelinePane.
 """
 
 from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QMouseEvent, QResizeEvent, QKeyEvent
 from PySide6.QtWidgets import (QFrame, QWidget, QSplitter, QVBoxLayout,
-                               QScrollArea, QScrollBar)
+                               QGridLayout, QScrollBar)
 
-from gui.views.timeline.timeline_view import TimelineView
-from gui.views.timeline.timeline_side import TimelineSide
 from utils.config import Config
+from core.entities.project import Project
+from core.entities.sequence import Sequence
+from core.entities.layer import Layer
+from gui.views.timeline.timeline_view import TimelineView
+from gui.views.timeline.timeline_list import TimelineList
+from core.services.layer_service import LayerService
+from gui.services.sequence_gui_service import SequenceGUIService
 
 
 class TimelineTab(QFrame):
     """A tab for viewing a sequence timeline."""
 
     _sequence_id: int
-    _side: TimelineSide
-    _view: TimelineView
-    _scroll_area: QScrollArea
-    _splitter: QSplitter
-    _bottom_splitter: QSplitter
-    _horizontal_scroll_bar: QWidget
+    _sequence: Sequence
+    _x_offset: float
+    _y_offset: float
+    _x_zoom: float
+    _current_frame: int
+    _stack_height: float
 
-    _mouse_middle_dragging: bool
-    _mouse_last_position: QPointF
+    _h_scroll_bar: QScrollBar
+    _v_scroll_bar: QScrollBar
+    _list: TimelineList
+    _view: TimelineView
 
     def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
         self._sequence_id = sequence_id
+        self._sequence = Project.get_sequence_dict()[sequence_id]
+        self._x_offset = 0
+        self._y_offset = 0
+        self._x_zoom = 1
+        self._stack_height = 0
+        self._current_frame = 0
 
-        # Side and view layout:
-        self._side = TimelineSide(self)
-        self._view = TimelineView(self, sequence_id)
+        for i in range(20):
+            _layer = Layer(f"Layer {i}", i*30, i*30+60)
+            LayerService.add_layer_to_sequence(_layer, self._sequence)
 
-        self._splitter = QSplitter(Qt.Horizontal, self)
-        self._splitter.addWidget(self._side)
-        self._splitter.addWidget(self._view)
-        self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 1)
-        self._splitter.setSizes([Config().timeline.side_panel_width, 100])
-        self._splitter.setHandleWidth(Config().window.splitter_width)
+        # Right panel:
+        _right_widget = QWidget(self)
+        _right_layout = QGridLayout(_right_widget)
+        
+        self._view = TimelineView(self, self._sequence)
+        _right_layout.addWidget(self._view, 0, 0)
 
-        self._scroll_area = QScrollArea(self)
-        self._scroll_area.setWidgetResizable(True)
-        self._scroll_area.setWidget(self._splitter)
+        self._h_scroll_bar = QScrollBar(Qt.Horizontal, self)
+        _right_layout.addWidget(self._h_scroll_bar, 1, 0)
+        _right_layout.setRowMinimumHeight(
+            1, self._h_scroll_bar.sizeHint().height())
 
-        # Bottom bar layout:
+        _vert_scroll_widget = QWidget(self)
+        _vert_scroll_layout = QVBoxLayout(_vert_scroll_widget)
+        _vert_scroll_layout.setContentsMargins(0,0,0,0)
+        _vert_scroll_layout.setSpacing(0)
+        _right_layout.addWidget(_vert_scroll_widget, 0, 1)
 
         _empty_widget = QWidget(self)
-        self._horizontal_scroll_bar = QScrollBar(Qt.Horizontal, self)
-        self._horizontal_scroll_bar.setSingleStep(20)
-        self._horizontal_scroll_bar.setPageStep(100)
-        self._horizontal_scroll_bar.valueChanged.connect(
-            self.horizontal_scrollbar_changed)
-        _view_scroll_bar = self._view.horizontalScrollBar()
-        _view_scroll_bar.rangeChanged.connect(
-            self.update_horizontal_range)
-        self._view.page_step_changed_signal.connect(
-            self.update_horizontal_page_step)
-        self.update_horizontal_range(_view_scroll_bar.minimum(),
-                                     _view_scroll_bar.maximum())
-        self.update_horizontal_page_step(_view_scroll_bar.pageStep())
-        
-        self._bottom_splitter = QSplitter(Qt.Horizontal, self)
-        self._bottom_splitter.addWidget(_empty_widget)
-        self._bottom_splitter.addWidget(self._horizontal_scroll_bar)
-        self._bottom_splitter.setStretchFactor(0, 0)
-        self._bottom_splitter.setStretchFactor(1, 1)
-        self._bottom_splitter.setSizes(
-            [Config().timeline.side_panel_width, 100])
-        self._bottom_splitter.setHandleWidth(0)
-        for _i in range(self._bottom_splitter.count()):
-            self._bottom_splitter.handle(_i).setEnabled(False)
-        self._splitter.splitterMoved.connect(self.synchronize_splitters)
+        _empty_widget.setFixedHeight(Config.timeline.ruler_height)
+        _vert_scroll_layout.addWidget(_empty_widget)
 
-        # Main layout:
-        _layout = QVBoxLayout()
-        _layout.addWidget(self._scroll_area)
-        _layout.addWidget(self._bottom_splitter)
+        self._v_scroll_bar = QScrollBar(Qt.Vertical, self)
+        _right_layout.setColumnMinimumWidth(
+            1, self._v_scroll_bar.sizeHint().width())
+        _vert_scroll_layout.addWidget(self._v_scroll_bar)
+
+        _right_layout.setRowStretch(0, 1)
+        _right_layout.setColumnStretch(0, 1)
+        _right_layout.setContentsMargins(0,0,0,0)
+        _right_layout.setSpacing(0)
+
+        # Left panel:
+        _left_widget = QWidget(self)
+        _left_layout = QGridLayout(_left_widget)
+        self._list = TimelineList(self, self._sequence)
+        _left_layout.addWidget(self._list, 1, 0)
+        _left_layout.setRowStretch(1, 1)
+        _left_layout.setRowMinimumHeight(0, Config.timeline.ruler_height)
+        _left_layout.setRowMinimumHeight(
+            2, self._h_scroll_bar.sizeHint().height())
+        _left_layout.setContentsMargins(0,0,0,0)
+        _left_layout.setSpacing(0)
+
+        # Splitter:
+        _splitter = QSplitter(Qt.Horizontal, self)
+        _splitter.addWidget(_left_widget)
+        _splitter.addWidget(_right_widget)
+        _splitter.setStretchFactor(0, 0)
+        _splitter.setStretchFactor(1, 1)
+        _splitter.setSizes([Config.timeline.side_panel_width, 100])
+        _splitter.setHandleWidth(Config.window.splitter_width)
+
+        _layout = QVBoxLayout(self)
+        _layout.addWidget(_splitter)
         _layout.setContentsMargins(0,0,0,0)
         _layout.setSpacing(0)
-        self.setLayout(_layout)
 
-        # User interactions:
-        self._mouse_middle_dragging = False
-        self._mouse_last_position = None
-        self._view.middle_mouse_press_signal.connect(
-            self.on_middle_mouse_press)
-        self._side.middle_mouse_press_signal.connect(
-            self.on_middle_mouse_press)
-        self._view.middle_mouse_release_signal.connect(
-            self.on_middle_mouse_release)
-        self._side.middle_mouse_release_signal.connect(
-            self.on_middle_mouse_release)
-        self._view.mouse_move_signal.connect(
-            self.on_mouse_move)
-        self._side.mouse_move_signal.connect(
-            self.on_mouse_move)
+        # Initialize connections:
+        self.set_x_zoom(0)
+        self._h_scroll_bar.valueChanged.connect(self.horiz_scroll_bar_moved)
+        self._v_scroll_bar.valueChanged.connect(self.vert_scroll_bar_moved)
+        self._view.resize_signal.connect(self.handle_view_resized)
+        self._view.x_offset_signal.connect(self.set_x_offset)
+        self._view.y_offset_signal.connect(self.set_y_offset)
+        self._list.y_offset_signal.connect(self.set_y_offset)
+        self._view.x_zoom_signal.connect(self.set_x_zoom)
+        self._view.stack_height_signal.connect(self.set_stack_height)
+        SequenceGUIService.offset_current_frame_signal.connect(
+            self.offset_current_frame_from_app)
+        SequenceGUIService.set_current_frame_signal.connect(
+            self.set_current_frame_from_app)
+
+        self._list.build_layers()
+        self._view.build_layers()
     
-    def mousePressEvent(self, event: QMouseEvent):
-        """Handle the mouse press event."""
-        if event.button() == Qt.MiddleButton:
-            self.on_middle_mouse_press(event)
+    def set_x_offset(self, x_offset: float):
+        """Scroll horizontally."""
+        _max_offset = (self._sequence.get_duration()*self._x_zoom
+                       - self._view.viewport().width())
+        self._x_offset = max(0, min(x_offset, _max_offset))
+
+        # Update widgets:
+        self._view.set_x_offset(self._x_offset)
+        self._h_scroll_bar.setValue(self._x_offset)
+
+    def set_x_zoom(self, x_zoom: float):
+        """Zoom horizontally."""
+        _duration = self._sequence.get_duration()
+        _view_width = self._view.viewport().width()
+        _min_zoom = _view_width / _duration
+        _max_zoom = Config.timeline.max_pixels_per_frame
+        self._x_zoom = max(_min_zoom, min(x_zoom, _max_zoom))
+        _max_offset = _duration*self._x_zoom - _view_width
+        if self._x_offset > _max_offset:
+            self.set_x_offset(_max_offset)
+        
+        # Update widgets:
+        self._view.set_x_zoom(self._x_zoom)
+        self._h_scroll_bar.setRange(0, _max_offset)
+        self._h_scroll_bar.setPageStep(_view_width)
+        self._h_scroll_bar.setVisible(_max_offset > 0)
     
-    def mouseReleaseEvent(self, event: QMouseEvent):
-        """Handle the mouse release event."""
-        if event.button() == Qt.MiddleButton:
-            self.on_middle_mouse_release(event)
+    def set_y_offset(self, y_offset: float):
+        """Scroll vertically."""
+        _max_offset = max(0, self._stack_height
+                             - self._view.viewport().height()
+                             + Config.timeline.ruler_height)
+        self._y_offset = max(0, min(y_offset, _max_offset))
 
-    def mouseMoveEvent(self, event: QMouseEvent):
-        """Handle the mouse move event."""
-        self.on_mouse_move(event)
-
-    def on_middle_mouse_press(self, event: QMouseEvent):
-        """Handle middle mouse press event."""
-        self._mouse_middle_dragging = True
-        self._mouse_last_position = event.globalPosition()
-        self.setCursor(Qt.ClosedHandCursor)
+        # Update widgets:
+        self._view.set_y_offset(self._y_offset)
+        self._list.set_y_offset(self._y_offset)
+        self._v_scroll_bar.setValue(self._y_offset)
     
-    def on_middle_mouse_release(self, event: QMouseEvent):
-        """Handle middle mouse release event."""
-        self._mouse_middle_dragging = False
-        self.setCursor(Qt.ArrowCursor)
+    def set_stack_height(self, stack_height: float):
+        """Update the layer stack total height."""
+        self._stack_height = stack_height
+        _max_offset = max(0, self._stack_height
+                             - self._view.viewport().height()
+                             + Config.timeline.ruler_height)
+        if self._y_offset > _max_offset:
+            self.set_y_offset(_max_offset)
+        
+        # Update widgets:
+        self._v_scroll_bar.setRange(0, _max_offset)
+        self._v_scroll_bar.setVisible(_max_offset > 0)
     
-    def on_mouse_move(self, event: QMouseEvent):
-        """Handle middle mouse move event."""
-        if self._mouse_middle_dragging:
-            _current_pos = event.globalPosition()
-            _delta = _current_pos - self._mouse_last_position
-            self.on_middle_mouse_button_drag(_delta)
-            self._mouse_last_position = _current_pos
+    def horiz_scroll_bar_moved(self, value: int):
+        """Handle moving the horizontal scroll bar."""
+        self.set_x_offset(value)
+    
+    def vert_scroll_bar_moved(self, value: int):
+        """Handle moving the vertical scroll bar."""
+        self.set_y_offset(value)
+    
+    def handle_view_resized(self, event: QResizeEvent):
+        """Handle resizing the view."""
+        self.set_x_zoom(self._x_zoom)
+        self._v_scroll_bar.setPageStep(self._view.viewport().height()
+                                       - Config.timeline.ruler_height)
+        _max_offset = max(0, self._stack_height
+                             - self._view.viewport().height()
+                             + Config.timeline.ruler_height)
+        self._v_scroll_bar.setRange(0, _max_offset)
+        self._v_scroll_bar.setVisible(_max_offset > 0)
+    
+    def set_current_frame(self, frame: int):
+        """Set the current frame."""
+        _max_frame = self._sequence.get_duration()-1
+        self._current_frame = max(0, min(frame, _max_frame))
 
-    def on_middle_mouse_button_drag(self, delta: float):
-        """Drag using middle mouse button."""
-        _vert_scroll_bar = self._scroll_area.verticalScrollBar()
-        _vert_scroll_bar.setValue(_vert_scroll_bar.value() - delta.y())
-        self._horizontal_scroll_bar.setValue(
-            self._horizontal_scroll_bar.value() - delta.x())
+        # Update widgets:
+        self._view.set_current_frame(self._current_frame)
+    
+    def offset_current_frame_from_app(self, sequence_id: int, offset: int):
+        """Handle offseting the current frame."""
+        if self._sequence_id == sequence_id:
+            self.set_current_frame(self._current_frame + offset)
 
-    def synchronize_splitters(self):
-        """Synchronize the positions of both splitters."""
-        _sizes = self._splitter.sizes()
-        self._bottom_splitter.setSizes(_sizes)
-
-    def horizontal_scrollbar_changed(self, value: int):
-        """Handle scrolling the horizontal scroll bar."""
-        self._view.horizontalScrollBar().setValue(value)
-
-    def update_horizontal_range(self, min: int, max: int):
-        """Update the horizontal scroll bar range."""
-        self._horizontal_scroll_bar.setRange(min, max)
-
-    def update_horizontal_page_step(self, page_step: int):
-        """Update the horizontal scroll bar page step."""
-        self._horizontal_scroll_bar.setPageStep(page_step)
+    def set_current_frame_from_app(self, sequence_id: int, frame: int):
+        """Handle setting the current frame."""
+        if self._sequence_id == sequence_id:
+            self.set_current_frame(frame)

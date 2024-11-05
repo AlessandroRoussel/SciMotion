@@ -8,5 +8,5 @@ from gui.views.app import App
 if __name__ == "__main__":
     _config = ConfigParser()
     _config.read("config.cfg")
-    Config(_config)
+    Config.load(_config)
     App()

@@ -9,7 +9,7 @@ widget which displays images with OpenGL.
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QFrame, QComboBox, QVBoxLayout, QToolBar,
                                QWidget, QCheckBox)
-from PySide6.QtGui import QWheelEvent, QCursor
+from PySide6.QtGui import QWheelEvent, QCursor, QKeyEvent
 
 from gui.views.viewer.gl_viewer import GLViewer
 from gui.services.sequence_gui_service import SequenceGUIService

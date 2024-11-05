@@ -23,7 +23,7 @@ from core.entities.layer import Layer
 from utils.config import Config
 
 
-class ModifierService():
+class ModifierService:
     """Service concerning modifiers in general."""
 
     _loaded: bool = False

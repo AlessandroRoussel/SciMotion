@@ -9,11 +9,12 @@ import numpy as np
 from OpenGL import GL
 from PySide6.QtWidgets import QWidget
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtGui import QWheelEvent, QMouseEvent
+from PySide6.QtGui import QWheelEvent, QMouseEvent, QKeyEvent
 from PySide6.QtCore import Qt, QPointF
 
 from utils.config import Config
 from utils.image import Image
+from gui.services.sequence_gui_service import SequenceGUIService
 
 
 class GLViewer(QOpenGLWidget):
@@ -92,12 +93,12 @@ class GLViewer(QOpenGLWidget):
 
 		float checkerTexture(vec2 xy){
 			float size = """+"{0:.2f}".format(
-                Config().viewer.checkerboard_size)+""";
+                Config.viewer.checkerboard_size)+""";
 			vec2 q = xy/size-2.*floor(xy/2./size);
 			return mix("""+"{0:.2f}".format(
-                Config().viewer.checkerboard_color_a)+""",
+                Config.viewer.checkerboard_color_a)+""",
 			  """+"{0:.2f}".format(
-                  Config().viewer.checkerboard_color_b)+""",
+                  Config.viewer.checkerboard_color_b)+""",
 			  float(q.x < 1. ^^ q.y < 1.));
 		}
 		
@@ -250,8 +251,8 @@ class GLViewer(QOpenGLWidget):
         return _transform
 
     def set_zoom(self, value: float):
-        self._zoom = max(Config().viewer.min_zoom,
-                         min(value, Config().viewer.max_zoom))
+        self._zoom = max(Config.viewer.min_zoom,
+                         min(value, Config.viewer.max_zoom))
 
     def get_zoom(self) -> float:
         """Return the zoom value."""
@@ -265,7 +266,7 @@ class GLViewer(QOpenGLWidget):
         self._center_x = .5
         self._center_y = .5
         if self._image is not None:
-            _padding = Config().viewer.fit_padding
+            _padding = Config.viewer.fit_padding
             _width = self.width() - 2*_padding
             _height = self.height() - 2*_padding
             _img_width = self._image.get_width()
@@ -321,9 +322,9 @@ class GLViewer(QOpenGLWidget):
                                                         _mouse_pos.y())
         _img_width = self._image.get_width()
         _img_height = self._image.get_height()
-        _factor = np.exp(_delta / 100. * Config().viewer.zoom_sensitivity)
+        _factor = np.exp(_delta / 100. * Config.viewer.zoom_sensitivity)
         self.set_zoom(self._zoom * _factor)
-        if Config().viewer.zoom_around_cursor:
+        if Config.viewer.zoom_around_cursor:
             self._center_x = _img_x/_img_width - (
                 _img_x/_img_width - self._center_x)/_factor
             self._center_y = _img_y/_img_height - (
@@ -333,9 +334,7 @@ class GLViewer(QOpenGLWidget):
     
     def mousePressEvent(self, event: QMouseEvent):
         """Handle the mouse press event."""
-        if self._image is None:
-            return
-        if event.button() == Qt.MiddleButton:
+        if self._image is not None and event.button() == Qt.MiddleButton:
             self._mouse_middle_dragging = True
             self._mouse_last_position = event.position()
             self.setCursor(Qt.ClosedHandCursor)
@@ -348,9 +347,7 @@ class GLViewer(QOpenGLWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle the mouse move event."""
-        if self._image is None:
-            return
-        if self._mouse_middle_dragging:
+        if self._image is not None and self._mouse_middle_dragging:
             _current_pos = event.position()
             _delta = _current_pos - self._mouse_last_position
             self.middle_mouse_button_drag(_delta)

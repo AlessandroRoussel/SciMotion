@@ -13,7 +13,7 @@ from core.entities.parameter import Parameter
 from core.entities.keyframe import Keyframe
 
 
-class AnimationService():
+class AnimationService:
     """Service concerning animation in general."""
 
     @classmethod

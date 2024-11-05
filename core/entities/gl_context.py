@@ -8,7 +8,7 @@ with a centralised moderngl context.
 import moderngl
 
 
-class GLContext():
+class GLContext:
     """ModernGL context."""
 
     _context: moderngl.Context = None

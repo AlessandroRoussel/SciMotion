@@ -66,3 +66,7 @@ class TimeInput(QLineEdit):
     def _text_from_value(self, frames: int) -> str:
         """Convert a number of frames into a text."""
         return Time.format_time(frames, self._frame_rate)
+
+    def change_frame_rate(self, frame_rate: float):
+        """Change the input's local frame rate."""
+        self._frame_rate = frame_rate

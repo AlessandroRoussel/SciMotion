@@ -2,7 +2,7 @@
 
 from typing import Callable
 
-from PySide6.QtGui import QIcon, QKeySequence, QAction
+from PySide6.QtGui import QIcon, QKeySequence, QAction, QKeyEvent
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QSplitter,
                                QFrame, QStatusBar, QLayout)
@@ -23,13 +23,13 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("{0} {1}.{2}".format(
-            Config().app.title,
-            Config().app.version_major,
-            Config().app.version_minor
+            Config.app.title,
+            Config.app.version_major,
+            Config.app.version_minor
         ))
-        self.setMinimumSize(QSize(Config().window.min_width,
-                                  Config().window.min_height))
-        self.setWindowIcon(QIcon(Config().app.icon))
+        self.setMinimumSize(QSize(Config.window.min_width,
+                                  Config.window.min_height))
+        self.setWindowIcon(QIcon(Config.app.icon))
         
         _layout = QVBoxLayout()
         _layout.setContentsMargins(0,0,0,0)
@@ -81,13 +81,13 @@ class MainWindow(QMainWindow):
         _main.setStretchFactor(0, 1)
         _main.setStretchFactor(1, 0)
 
-        _top.setSizes([Config().window.left_pane_width, 100])
-        _left.setSizes([100, Config().window.bottom_pane_height])
-        _main.setSizes([100, Config().window.right_pane_width])
+        _top.setSizes([Config.window.left_pane_width, 100])
+        _left.setSizes([100, Config.window.bottom_pane_height])
+        _main.setSizes([100, Config.window.right_pane_width])
 
-        _top.setHandleWidth(Config().window.splitter_width)
-        _left.setHandleWidth(Config().window.splitter_width)
-        _main.setHandleWidth(Config().window.splitter_width)
+        _top.setHandleWidth(Config.window.splitter_width)
+        _left.setHandleWidth(Config.window.splitter_width)
+        _main.setHandleWidth(Config.window.splitter_width)
         return _main
     
     def initialize_open_gl_context(self, layout: QLayout):

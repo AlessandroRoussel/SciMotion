@@ -9,13 +9,15 @@ from utils.notification import Notification
 from utils.image import Image
 
 
-class SequenceGUIService():
+class SequenceGUIService:
     """A set of services for sequence related GUI elements."""
 
     create_sequence_signal = Notification()
     open_sequence_signal = Notification()
     close_sequence_signal = Notification()
     focus_sequence_signal = Notification()
+    offset_current_frame_signal = Notification()
+    set_current_frame_signal = Notification()
 
     _focused_sequence: int = None
 
@@ -44,3 +46,15 @@ class SequenceGUIService():
         """Set which sequence is currently focused."""
         cls._focused_sequence = sequence_id
         cls.focus_sequence_signal.emit(sequence_id)
+
+    @classmethod
+    def offset_current_frame(cls, offset: int):
+        """Offset the current frame of the focused sequence."""
+        if cls._focused_sequence is not None:
+            cls.offset_current_frame_signal.emit(cls._focused_sequence, offset)
+
+    @classmethod
+    def set_current_frame(cls, frame: int):
+        """Set the current frame of the focused sequence."""
+        if cls._focused_sequence is not None:
+            cls.set_current_frame_signal.emit(cls._focused_sequence, frame)

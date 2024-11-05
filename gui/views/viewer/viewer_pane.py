@@ -7,6 +7,8 @@ objects which can display media or sequences.
 """
 
 from PySide6.QtWidgets import (QTabWidget, QWidget)
+from PySide6.QtGui import QKeyEvent
+from PySide6.QtCore import Qt
 
 from gui.views.viewer.viewer_tab import ViewerTab
 from core.entities.project import Project

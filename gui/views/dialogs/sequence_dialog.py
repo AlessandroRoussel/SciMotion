@@ -29,11 +29,11 @@ class SequenceDialog(QDialog):
         _create = sequence is None
 
         if _create:
-            _title = Config().sequence.default_title
-            _width = Config().sequence.default_width
-            _height = Config().sequence.default_height
-            _frame_rate = Config().sequence.default_frame_rate
-            _duration = Config().sequence.default_duration
+            _title = Config.sequence.default_title
+            _width = Config.sequence.default_width
+            _height = Config.sequence.default_height
+            _frame_rate = Config.sequence.default_frame_rate
+            _duration = Config.sequence.default_duration
         else:
             _title = sequence.get_title()
             _width = sequence.get_width()
@@ -43,7 +43,7 @@ class SequenceDialog(QDialog):
 
         self.setWindowTitle("Create new sequence" if _create
                             else "Sequence parameters")
-        self.setWindowIcon(QIcon(Config().app.icon))
+        self.setWindowIcon(QIcon(Config.app.icon))
         self.setFixedSize(QSize(400, 250))
         _layout = QVBoxLayout()
         _layout.setContentsMargins(40, 20, 40, 20)
@@ -61,6 +61,7 @@ class SequenceDialog(QDialog):
 
         self._frame_rate_input = FloatInput(self, _frame_rate, min=0.01)
         self._frame_rate_input.textChanged.connect(self.validate_inputs)
+        self._frame_rate_input.editingFinished.connect(self.changed_frame_rate)
         
         self._duration_input = TimeInput(self, _duration, _frame_rate, min=1)
         self._duration_input.textChanged.connect(self.validate_inputs)
@@ -113,7 +114,14 @@ class SequenceDialog(QDialog):
         _frame_rate = self._frame_rate_input.get_value()
         _duration = self._duration_input.get_value()
         return _title, _width, _height, _frame_rate, _duration
-    
+
+    def changed_frame_rate(self):
+        """Handle changing the frame rate."""
+        if self._frame_rate_input.is_valid():
+            _frame_rate = self._frame_rate_input.get_value()
+            self._duration_input.change_frame_rate(_frame_rate)
+            self._duration_input.format()
+
     def validate_inputs(self):
         """Validate inputs and enable/disable the ok button."""
         _valid_title = self._title_input.is_valid()
