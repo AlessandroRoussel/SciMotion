@@ -11,6 +11,7 @@ from core.entities.keyframe import Keyframe
 from core.entities.sequence import Sequence
 from utils.notification import Notification
 from data_types.number import Number
+from data_types.color import Color
 from utils.image import Image
 
 

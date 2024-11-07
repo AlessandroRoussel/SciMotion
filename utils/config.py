@@ -59,6 +59,8 @@ class Config():
         cls.store(config, "timeline", "horizontal_strips", bool)
 
         cls.store(config, "solid_layer", "default_title", str)
+
+        cls.store(config, "render", "anti_aliasing_samples", int)
     
     @classmethod
     def store(cls,

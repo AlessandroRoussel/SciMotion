@@ -24,6 +24,7 @@ from data_types.data_type import DataType
 from core.services.animation_service import AnimationService
 from data_types.color import Color
 from utils.image import Image
+from utils.config import Config
 
 
 class RenderService:
@@ -32,6 +33,10 @@ class RenderService:
     _transform_program: moderngl.Program = None
     _color_shader: moderngl.ComputeShader = None
     _compositing_shader: moderngl.ComputeShader = None
+    _transform_msaa_fbo: moderngl.Buffer = None
+    _transform_fbo: moderngl.Buffer = None
+    _transform_msaa_texture: moderngl.Texture = None
+    _transform_texture: moderngl.Texture = None
 
     @classmethod
     def apply_modifier_to_render_context(cls,
@@ -154,11 +159,10 @@ class RenderService:
             if frame < _start or frame >= _end:
                 continue
             _texture = cls.render_visual_layer(_layer, _sequence_ctx)
-            _transformed_texture = cls._transform_visual_layer_texture(
+            cls._transform_visual_layer_texture(
                 _layer, _texture, _sequence_ctx)
             _texture.release()
-            cls._composite_over(_transformed_texture, _result_texture)
-            _transformed_texture.release()
+            cls._composite_over(cls._transform_texture, _result_texture)
 
         # TODO : Optimize long operation (20 ms):
         _image = cls._image_from_texture(_result_texture)
@@ -210,8 +214,7 @@ class RenderService:
     def _transform_visual_layer_texture(cls,
                                         visual_layer: VisualLayer,
                                         texture: moderngl.Texture,
-                                        sequence_ctx: SequenceContext
-                                        ) -> moderngl.Texture:
+                                        sequence_ctx: SequenceContext):
         """Transform a texture based on a VisualLayer geometry."""
         out_width = sequence_ctx.get_width()
         out_height = sequence_ctx.get_height()
@@ -262,16 +265,16 @@ class RenderService:
 
         # TODO : make this part thread safe, by storing the geometrical info
         # about the layer inside the RenderContext
-        _position = cls.get_parameter_value(visual_layer.get_position(),
-                                            sequence_ctx)
-        _anchor = cls.get_parameter_value(visual_layer.get_anchor(),
-                                            sequence_ctx)
-        _scale = cls.get_parameter_value(visual_layer.get_scale(),
-                                            sequence_ctx)
-        _rotation = cls.get_parameter_value(visual_layer.get_rotation(),
-                                            sequence_ctx)
-        _opacity = cls.get_parameter_value(visual_layer.get_opacity(),
-                                            sequence_ctx)
+        _position = cls.get_parameter_value(
+            visual_layer.get_position(), sequence_ctx)
+        _anchor = cls.get_parameter_value(
+            visual_layer.get_anchor(), sequence_ctx)
+        _scale = cls.get_parameter_value(
+            visual_layer.get_scale(), sequence_ctx)
+        _rotation = cls.get_parameter_value(
+            visual_layer.get_rotation(), sequence_ctx)
+        _opacity = cls.get_parameter_value(
+            visual_layer.get_opacity(), sequence_ctx)
 
         cls._transform_program["in_texture"] = 0
         cls._transform_program["context_size"] = out_width, out_height
@@ -282,10 +285,31 @@ class RenderService:
         cls._transform_program["rotation"] = _rotation
         cls._transform_program["opacity"] = _opacity
 
-        # TODO : avoid creating a FBO for this everytime
-        _result = _gl_context.texture((out_width, out_height), 4, dtype="f4")
-        _fbo = _gl_context.framebuffer(color_attachments=[_result])
-        _fbo.use()
+        if (cls._transform_texture is not None
+            and (cls._transform_texture.width != out_width
+                 or cls._transform_texture.height != out_height)):
+            cls._transform_msaa_texture.release()
+            cls._transform_msaa_fbo.release()
+            cls._transform_texture.release()
+            cls._transform_fbo.release()
+            cls._transform_msaa_texture = None
+            cls._transform_msaa_fbo = None
+            cls._transform_texture = None
+            cls._transform_fbo = None
+
+        if cls._transform_texture is None:
+            cls._transform_msaa_texture = _gl_context.texture(
+                (out_width, out_height), 4, dtype="f4",
+                samples=Config.render.anti_aliasing_samples)
+            cls._transform_msaa_fbo = _gl_context.framebuffer(
+                color_attachments=[cls._transform_msaa_texture])
+            cls._transform_texture = _gl_context.texture(
+                (out_width, out_height), 4, dtype="f4")
+            cls._transform_fbo = _gl_context.framebuffer(
+                color_attachments=[cls._transform_texture])
+
+        cls._transform_msaa_fbo.use()
+        cls._transform_msaa_fbo.clear(0, 0, 0, 0)
         _vao.render(moderngl.TRIANGLE_STRIP)
-        _fbo.release()
-        return _result
+        _gl_context.copy_framebuffer(cls._transform_fbo,
+                                     cls._transform_msaa_fbo)

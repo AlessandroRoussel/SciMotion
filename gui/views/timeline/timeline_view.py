@@ -232,8 +232,8 @@ class TimelineView(QGraphicsView):
             SequenceGUIService.offset_current_frame(1)
             return
 
-    def drawBackground(self, qp: QPainter, rect: QRectF):
-        """Draw the background grid and visuals."""
+    def draw_stripes(self, qp: QPainter, rect: QRectF):
+        """Draw the horizontal and vertical stripes."""
         _fps = self._sequence.get_frame_rate()
         _layer_height = Config.timeline.layer_height
         _layer_spacing = Config.timeline.layer_spacing
@@ -272,6 +272,8 @@ class TimelineView(QGraphicsView):
 
     def drawForeground(self, qp: QPainter, rect: QRectF):
         """Draw the foreground ruler and elements."""
+        self.draw_stripes(qp, rect)
+
         # Ruler background:
         _ruler_height = Config.timeline.ruler_height
         qp.setPen(Qt.NoPen)
