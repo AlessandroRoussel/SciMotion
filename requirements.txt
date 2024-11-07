@@ -2,4 +2,3 @@ numpy
 moderngl
 configparser
 pyside6
-pyopengl

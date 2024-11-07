@@ -19,7 +19,6 @@ from gui.services.sequence_gui_service import SequenceGUIService
 
 class GLViewer(QOpenGLWidget):
     """The OpenGL widget within a ViewerPane."""
-    _gl_context: moderngl.Context
     _program: moderngl.Program
     _vao: moderngl.VertexArray
     _texture: moderngl.Texture
@@ -72,17 +71,18 @@ class GLViewer(QOpenGLWidget):
 
     def resizeGL(self, width: int, height: int):
         """React to resizing."""
-        self._gl_context.viewport = (0, 0, width, height)
+        _gl_context = moderngl.create_context()
+        _gl_context.viewport = (0, 0, width, height)
         if self._fitting_zoom:
             self.fit_to_frame(self._fitting_zoom_max, False)
 
     def initializeGL(self):
         """Setup OpenGL, program and geometry."""
-        self._gl_context = moderngl.create_context()
-        self.init_shaders()
-        self.init_quad()
+        _gl_context = moderngl.create_context()
+        self.init_shaders(_gl_context)
+        self.init_quad(_gl_context)
 
-    def init_shaders(self):
+    def init_shaders(self, gl_context: moderngl.Context):
         """Compile shaders and create program."""
         _vertex_code = """
         #version 330
@@ -124,25 +124,25 @@ class GLViewer(QOpenGLWidget):
 			out_color = vec4(blended_color, 1.);
 		}
         """
-        self._program = self._gl_context.program(
+        self._program = gl_context.program(
             vertex_shader=_vertex_code,
             fragment_shader=_fragment_code
         )
     
-    def init_quad(self):
+    def init_quad(self, gl_context: moderngl.Context):
         """Create quad vertex array."""
         _vertices = np.array([0,0,1,0,0,1,1,1], dtype=np.float32)
-        _vbo = self._gl_context.buffer(_vertices.tobytes())
-        self._vao = self._gl_context.vertex_array(self._program, _vbo, "in_uv")
+        _vbo = gl_context.buffer(_vertices.tobytes())
+        self._vao = gl_context.vertex_array(self._program, _vbo, "in_uv")
 
-    def load_texture_from_image(self):
+    def load_texture_from_image(self, gl_context: moderngl.Context):
         """Load the image into the OpenGL texture."""
         if self._texture is not None:
             return
         _width = self._image.get_width()
         _height = self._image.get_height()
         _data = self._image.get_data_bytes()
-        self._texture = self._gl_context.texture(
+        self._texture = gl_context.texture(
             (_width, _height), 4, data=_data, dtype="f4")
         self._texture.repeat_x = False
         self._texture.repeat_y = False
@@ -150,12 +150,12 @@ class GLViewer(QOpenGLWidget):
 
     def paintGL(self):
         """Paint the OpenGL context."""
+        _gl_context = moderngl.create_context()
         _qt_color = self.palette().window().color()
-        """self._gl_context.clear(_qt_color.redF(), _qt_color.greenF(),
-                               _qt_color.blueF(), 1)"""
-        self._gl_context.screen.clear(1, 0, 0, 1)
+        _gl_context.clear(_qt_color.redF(), _qt_color.greenF(),
+                                        _qt_color.blueF(), 1)
         if self._image is not None:
-            self.load_texture_from_image()
+            self.load_texture_from_image(_gl_context)
             self._texture.use(location=0)
             self._program["u_texture"] = 0
             _transform = self.transformation_matrix()
