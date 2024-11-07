@@ -56,7 +56,9 @@ class RenderService:
     @staticmethod
     def _image_from_texture(texture: moderngl.Texture) -> Image:
         """Extract an Image object from a moderngl Texture."""
-        return Image(texture.width, texture.height, data_bytes=texture.read())
+        _data_bytes = texture.read()
+        _image = Image(texture.width, texture.height, data_bytes=_data_bytes)
+        return _image
 
     @staticmethod
     def _texture_from_image(gl_context: moderngl.Context,
@@ -256,7 +258,7 @@ class RenderService:
             """
             cls._transform_program = _gl_context.program(
                 vertex_shader=_vertex_code,
-                fragment_shader=_fragment_code,
+                fragment_shader=_fragment_code
             )
         _quad_vertices = np.array([0,0,1,0,0,1,1,1], dtype=np.float32)
         _vbo = _gl_context.buffer(_quad_vertices.tobytes())

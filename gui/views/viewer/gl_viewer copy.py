@@ -6,7 +6,7 @@ an OpenGL context for displaying renders and media.
 """
 
 import numpy as np
-import moderngl
+from OpenGL import GL
 from PySide6.QtWidgets import QWidget
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtGui import QWheelEvent, QMouseEvent, QKeyEvent
@@ -19,10 +19,10 @@ from gui.services.sequence_gui_service import SequenceGUIService
 
 class GLViewer(QOpenGLWidget):
     """The OpenGL widget within a ViewerPane."""
-    _gl_context: moderngl.Context
-    _program: moderngl.Program
-    _vao: moderngl.VertexArray
-    _texture: moderngl.Texture
+
+    _program: int
+    _vao: np.uintc
+    _texture_id: np.uintc
 
     _sequence_id: int
     _current_frame: int
@@ -35,6 +35,7 @@ class GLViewer(QOpenGLWidget):
     _mouse_middle_dragging: bool
     _mouse_last_position: QPointF
     _checkerboard: bool
+    _texture_loaded: bool
 
     def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
@@ -48,8 +49,8 @@ class GLViewer(QOpenGLWidget):
         self._fitting_zoom_max = None
         self._mouse_middle_dragging = False
         self._mouse_last_position = None
+        self._texture_loaded = False
         self._checkerboard = False
-        self._texture = None
         self.update_image()
     
     def set_current_frame(self, frame: int):
@@ -62,26 +63,24 @@ class GLViewer(QOpenGLWidget):
         """Toggle transparency checkerboard status."""
         self._checkerboard = state
         self.update()
+
+    def initializeGL(self):
+        """Setup OpenGL, program and geometry."""
+        self.init_shaders()
+        self.init_quad()
+        self.init_texture()
     
     def set_image(self, image: Image):
         """Set the displayed image."""
         self._image = image
-        if self._texture is not None:
-            self._texture.release()
-        self._texture = None
+        self._texture_loaded = False
 
     def resizeGL(self, width: int, height: int):
         """React to resizing."""
-        self._gl_context.viewport = (0, 0, width, height)
+        GL.glViewport(0, 0, width, height)
         if self._fitting_zoom:
             self.fit_to_frame(self._fitting_zoom_max, False)
-
-    def initializeGL(self):
-        """Setup OpenGL, program and geometry."""
-        self._gl_context = moderngl.create_context()
-        self.init_shaders()
-        self.init_quad()
-
+    
     def init_shaders(self):
         """Compile shaders and create program."""
         _vertex_code = """
@@ -124,45 +123,110 @@ class GLViewer(QOpenGLWidget):
 			out_color = vec4(blended_color, 1.);
 		}
         """
-        self._program = self._gl_context.program(
-            vertex_shader=_vertex_code,
-            fragment_shader=_fragment_code
-        )
-    
+        _fragment_shader = GL.glCreateShader(GL.GL_FRAGMENT_SHADER)
+        _vertex_shader = GL.glCreateShader(GL.GL_VERTEX_SHADER)
+        GL.glShaderSource(_fragment_shader, _fragment_code)
+        GL.glShaderSource(_vertex_shader, _vertex_code)
+        GL.glCompileShader(_fragment_shader)
+        GL.glCompileShader(_vertex_shader)
+
+        self._program = GL.glCreateProgram()
+        GL.glAttachShader(self._program, _fragment_shader)
+        GL.glAttachShader(self._program, _vertex_shader)
+        GL.glLinkProgram(self._program)
+
+        GL.glDeleteShader(_fragment_shader)
+        GL.glDeleteShader(_vertex_shader)
+
     def init_quad(self):
         """Create quad vertex array."""
         _vertices = np.array([0,0,1,0,0,1,1,1], dtype=np.float32)
-        _vbo = self._gl_context.buffer(_vertices.tobytes())
-        self._vao = self._gl_context.vertex_array(self._program, _vbo, "in_uv")
+        
+        self._vao = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(self._vao)
+
+        _vbo = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, _vbo)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER,
+                        _vertices.nbytes,
+                        _vertices,
+                        GL.GL_STATIC_DRAW)
+
+        # Texture uv attribute
+        _uv_attrib = GL.glGetAttribLocation(self._program, "in_uv")
+        GL.glEnableVertexAttribArray(_uv_attrib)
+        GL.glVertexAttribPointer(_uv_attrib,
+                                 2,
+                                 GL.GL_FLOAT,
+                                 GL.GL_FALSE,
+                                 2 * _vertices.itemsize,
+                                 GL.ctypes.c_void_p(0))
+        GL.glBindVertexArray(0)
+        GL.glDeleteBuffers(1, [_vbo])
+
+    def init_texture(self):
+        """Initialize the OpenGL texture used to display the image."""
+        self._texture_id = GL.glGenTextures(1)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture_id)
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
     def load_texture_from_image(self):
         """Load the image into the OpenGL texture."""
-        if self._texture is not None:
+        if self._texture_loaded:
             return
-        _width = self._image.get_width()
-        _height = self._image.get_height()
-        _data = self._image.get_data_bytes()
-        self._texture = self._gl_context.texture(
-            (_width, _height), 4, data=_data, dtype="f4")
-        self._texture.repeat_x = False
-        self._texture.repeat_y = False
-        self._texture.filter = moderngl.LINEAR, moderngl.NEAREST
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture_id)
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA32F,
+                        self._image.get_width(),
+                        self._image.get_height(),
+                        0, GL.GL_RGBA, GL.GL_FLOAT,
+                        self._image.get_data_bytes())
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        self._texture_loaded = True
 
     def paintGL(self):
         """Paint the OpenGL context."""
         _qt_color = self.palette().window().color()
-        """self._gl_context.clear(_qt_color.redF(), _qt_color.greenF(),
-                               _qt_color.blueF(), 1)"""
-        self._gl_context.screen.clear(1, 0, 0, 1)
+        GL.glClearColor(_qt_color.redF(), _qt_color.greenF(),
+                        _qt_color.blueF(), 1)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         if self._image is not None:
             self.load_texture_from_image()
-            self._texture.use(location=0)
-            self._program["u_texture"] = 0
+            GL.glUseProgram(self._program)
+            GL.glBindVertexArray(self._vao)
+
             _transform = self.transformation_matrix()
-            self._program["u_transform"] = _transform
-            self._program["u_checkerboard"] = self._checkerboard
-            self._program["u_dimensions"] = self.width(), self.height()
-            self._vao.render(moderngl.TRIANGLE_STRIP)
+            _loc = GL.glGetUniformLocation(self._program, "u_transform")
+            GL.glUniformMatrix4fv(_loc, 1, GL.GL_TRUE, _transform)
+
+            GL.glActiveTexture(GL.GL_TEXTURE0)
+            GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture_id)
+            _tex_loc = GL.glGetUniformLocation(self._program, "u_texture")
+            GL.glUniform1i(_tex_loc, 0)
+
+            GL.glUniform1i(
+                GL.glGetUniformLocation(self._program, "u_checkerboard"),
+                self._checkerboard)
+            
+            GL.glUniform2f(
+                GL.glGetUniformLocation(self._program, "u_dimensions"),
+                self.width(),
+                self.height())
+
+            GL.glDrawArrays(GL.GL_TRIANGLE_STRIP, 0, 4)
+
+            GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+            GL.glBindVertexArray(0)
+            GL.glUseProgram(0)
 
     def transformation_matrix(self) -> np.ndarray:
         """Return the transformation matrix for displaying the image."""
@@ -175,10 +239,10 @@ class GLViewer(QOpenGLWidget):
         _offset_x = self._zoom * (1 - 2*self._center_x) * _img_width/_width
         _offset_y = self._zoom * (-1 + 2*self._center_y) * _img_height/_height
         _transform = np.array([
-            _scale_x, 0, 0, 0,
-            0, _scale_y, 0, 0,
-            0, 0, 1, 0,
-            _offset_x, _offset_y, 0, 1
+            [_scale_x, 0, 0, _offset_x],
+            [0, _scale_y, 0, _offset_y],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
         ], dtype=np.float32)
         return _transform
 
