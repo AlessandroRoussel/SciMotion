@@ -117,7 +117,6 @@ class RenderService:
     @classmethod
     def render_sequence_frame(cls, sequence: Sequence, frame: int) -> Image:
         """Render a frame of a Sequence to an Image."""
-        #_start_time = time.perf_counter()
         _width = sequence.get_width()
         _height = sequence.get_height()
         _gl_context = GLContext.get_context()
@@ -141,9 +140,6 @@ class RenderService:
         # TODO : Optimize long operation (20 ms):
         _image = cls._image_from_texture(_result_texture)
         _result_texture.release()
-
-        #_end_time = time.perf_counter()
-        #print(f"Render time: {(_end_time-_start_time)*1000}ms")
         return _image
 
     @classmethod
@@ -161,18 +157,24 @@ class RenderService:
             void main() {
                 ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
                 vec4 color_a = imageLoad(texture_a, coords);
-                vec4 color_b = imageLoad(texture_b, coords);
+                vec4 out_color;
+                if(color_a.a == 1.){
+                    out_color = color_a;
+                }else{
+                    vec4 color_b = imageLoad(texture_b, coords);
 
-                vec3 rgb_a = color_a.rgb;
-                vec3 rgb_b = color_b.rgb;
-                float alpha_a = color_a.a;
-                float alpha_b = color_b.a;
+                    vec3 rgb_a = color_a.rgb;
+                    vec3 rgb_b = color_b.rgb;
+                    float alpha_a = color_a.a;
+                    float alpha_b = color_b.a;
 
-                float out_alpha = alpha_a + alpha_b*(1.-alpha_a);
-                vec3 out_rgb = (rgb_a*alpha_a + rgb_b*alpha_b*(1.-alpha_a));
-                out_rgb /= out_alpha;
-
-                vec4 out_color = vec4(out_rgb, out_alpha);
+                    float out_alpha = alpha_a + alpha_b*(1.-alpha_a);
+                    vec3 out_rgb = (rgb_a*alpha_a+rgb_b*alpha_b*(1.-alpha_a));
+                    if(out_alpha > 0.){
+                        out_rgb /= out_alpha;
+                    }
+                    out_color = vec4(out_rgb, out_alpha);
+                }
                 imageStore(texture_b, coords.xy, out_color);
             }
             """
@@ -255,6 +257,6 @@ class RenderService:
         _result = _gl_context.texture((out_width, out_height), 4, dtype="f4")
         _fbo = _gl_context.framebuffer(color_attachments=[_result])
         _fbo.use()
-        _gl_context.clear(0, 0, 0, 0)
         _vao.render(moderngl.TRIANGLE_STRIP)
+        _fbo.release()
         return _result
