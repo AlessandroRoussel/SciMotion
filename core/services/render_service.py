@@ -14,10 +14,14 @@ import numpy as np
 from core.entities.modifier_repository import ModifierRepository
 from core.entities.modifier import Modifier
 from core.entities.render_context import RenderContext
+from core.entities.sequence_context import SequenceContext
 from core.entities.visual_layer import VisualLayer
 from core.entities.solid_layer import SolidLayer
 from core.entities.sequence import Sequence
 from core.entities.gl_context import GLContext
+from core.entities.parameter import Parameter
+from data_types.data_type import DataType
+from core.services.animation_service import AnimationService
 from data_types.color import Color
 from utils.image import Image
 
@@ -29,17 +33,19 @@ class RenderService:
     _color_shader: moderngl.ComputeShader = None
     _compositing_shader: moderngl.ComputeShader = None
 
-    @staticmethod
-    def apply_modifier_to_render_context(modifier: Modifier,
+    @classmethod
+    def apply_modifier_to_render_context(cls,
+                                         modifier: Modifier,
                                          context: RenderContext):
         """Execute the action of a Modifier on a RenderContext."""
         _name_id = modifier.get_template_id()
         _modifier_template = ModifierRepository.get_template(_name_id)
         _function = _modifier_template.get_apply_function()
         _arguments = []
+        _sequence_ctx = context.get_sequence_context()
         for _parameter in modifier.get_parameter_list():
-            _raw_data = _parameter.get_current_value()
-            _arguments.append(_raw_data.get_value())
+            _data = cls.get_parameter_value(_parameter, _sequence_ctx)
+            _arguments.append(_data)
         _function(context, *_arguments)
 
     @staticmethod
@@ -59,28 +65,30 @@ class RenderService:
         return _texture
 
     @classmethod
-    def render_visual_layer(cls, layer: VisualLayer) -> moderngl.Texture:
+    def render_visual_layer(cls,
+                            layer: VisualLayer,
+                            sequence_ctx: SequenceContext
+                            ) -> moderngl.Texture:
         """Render a VisualLayer to a texture."""
 
         # TODO : render only the visible part of the layer
         # (don't render any potential offscreen pixels)
 
         if isinstance(layer, SolidLayer):
-            return cls.render_solid_layer(layer)
+            return cls.render_solid_layer(layer, sequence_ctx)
         raise NotImplementedError(f"Rendering method for '{layer.__class__}' "
                                   f"not implemented")
 
     @classmethod
-    def render_solid_layer(cls, layer: SolidLayer) -> moderngl.Texture:
+    def render_solid_layer(cls,
+                           layer: SolidLayer,
+                           sequence_ctx: SequenceContext
+                           ) -> moderngl.Texture:
         """Render a SolidLayer to a texture."""
         _width = layer.get_width()
         _height = layer.get_height()
-        _context = RenderContext(_width, _height)
-        _color = layer.get_color().get_current_value()
-        """_data = np.full((_height, _width, 4), _color, dtype="f4")
-        _gl_context = _context.get_gl_context()
-        _texture = _gl_context.texture(
-            (_width, _height), 4, _data.tobytes(), dtype="f4")"""
+        _context = RenderContext(_width, _height, sequence_ctx)
+        _color = cls.get_parameter_value(layer.get_color(), sequence_ctx)
         _texture = cls.create_color_texture(_width, _height, _color)
         _context.set_src_texture(_texture)
         for _modifier in layer.get_modifier_list():
@@ -89,11 +97,19 @@ class RenderService:
         _context.release_dest_texture()
         return _context.get_src_texture()
     
+    @staticmethod
+    def get_parameter_value(parameter: Parameter,
+                            sequence_ctx: SequenceContext
+                            ) -> DataType:
+        """Get the value of a parameter according to a sequence context."""
+        return AnimationService.get_value_at_frame(
+            parameter, sequence_ctx.get_current_frame()).get_value()
+
     @classmethod
     def create_color_texture(cls,
                              width: int,
                              height: int,
-                             color: Color
+                             color: tuple = (0, 0, 0, 0)
                              ) -> moderngl.Texture:
         """Render a SolidLayer to a texture using a fragment shader."""
         _gl_context = GLContext.get_context()
@@ -110,7 +126,7 @@ class RenderService:
             cls._color_shader = _gl_context.compute_shader(_glsl_code)
         _texture = _gl_context.texture((width, height), 4, dtype="f4")
         _texture.bind_to_image(0, read=False, write=True)
-        cls._color_shader["color"] = color.get_value()
+        cls._color_shader["color"] = color
         cls._color_shader.run(width, height, 1)
         return _texture
 
@@ -119,8 +135,15 @@ class RenderService:
         """Render a frame of a Sequence to an Image."""
         _width = sequence.get_width()
         _height = sequence.get_height()
+        _sequence_ctx = SequenceContext(sequence, frame)
         _gl_context = GLContext.get_context()
         _result_texture = _gl_context.texture((_width, _height), 4, dtype="f4")
+
+        # TODO : try avoiding doing this just to clear the texture
+        _fbo = _gl_context.framebuffer(color_attachments=[_result_texture])
+        _fbo.use()
+        _fbo.clear()
+        _fbo.release()
 
         _layer_list = sequence.get_layer_list()
         for _layer in _layer_list:
@@ -130,9 +153,9 @@ class RenderService:
             _end = _layer.get_end_frame()
             if frame < _start or frame >= _end:
                 continue
-            _texture = cls.render_visual_layer(_layer)
+            _texture = cls.render_visual_layer(_layer, _sequence_ctx)
             _transformed_texture = cls._transform_visual_layer_texture(
-                _layer, _texture, _width, _height)
+                _layer, _texture, _sequence_ctx)
             _texture.release()
             cls._composite_over(_transformed_texture, _result_texture)
             _transformed_texture.release()
@@ -187,10 +210,11 @@ class RenderService:
     def _transform_visual_layer_texture(cls,
                                         visual_layer: VisualLayer,
                                         texture: moderngl.Texture,
-                                        out_width: int,
-                                        out_height: int
+                                        sequence_ctx: SequenceContext
                                         ) -> moderngl.Texture:
         """Transform a texture based on a VisualLayer geometry."""
+        out_width = sequence_ctx.get_width()
+        out_height = sequence_ctx.get_height()
         _gl_context = GLContext.get_context()
         _tex_width = texture.width
         _tex_height = texture.height
@@ -238,11 +262,16 @@ class RenderService:
 
         # TODO : make this part thread safe, by storing the geometrical info
         # about the layer inside the RenderContext
-        _position = visual_layer.get_position().get_current_value().get_value()
-        _anchor = visual_layer.get_anchor().get_current_value().get_value()
-        _scale = visual_layer.get_scale().get_current_value().get_value()
-        _rotation = visual_layer.get_rotation().get_current_value().get_value()
-        _opacity = visual_layer.get_opacity().get_current_value().get_value()
+        _position = cls.get_parameter_value(visual_layer.get_position(),
+                                            sequence_ctx)
+        _anchor = cls.get_parameter_value(visual_layer.get_anchor(),
+                                            sequence_ctx)
+        _scale = cls.get_parameter_value(visual_layer.get_scale(),
+                                            sequence_ctx)
+        _rotation = cls.get_parameter_value(visual_layer.get_rotation(),
+                                            sequence_ctx)
+        _opacity = cls.get_parameter_value(visual_layer.get_opacity(),
+                                            sequence_ctx)
 
         cls._transform_program["in_texture"] = 0
         cls._transform_program["context_size"] = out_width, out_height

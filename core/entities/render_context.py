@@ -3,13 +3,14 @@ Provides useful information about the rendering context.
 
 A RenderContext is used to provide a ModifierProgram with various
 information about the rendering context, such as the Layer dimensions,
-the current frame number, and so on, as well as the source and destination
-textures, and a ModernGL context for running shaders if needed...
+as well as the source and destination textures, and a ModernGL context
+for running shaders if needed...
 """
 
 import moderngl
 
 from core.entities.gl_context import GLContext
+from core.entities.sequence_context import SequenceContext
 
 
 class RenderContext:
@@ -19,13 +20,22 @@ class RenderContext:
     _height: int
     _src_texture: moderngl.Texture
     _dest_texture: moderngl.Texture
+    _sequence_context: SequenceContext
 
-    def __init__(self, width: int, height: int):
+    def __init__(self,
+                 width: int,
+                 height: int,
+                 sequence_context: SequenceContext):
         self._width = width
         self._height = height
+        self._sequence_context = sequence_context
         self._src_texture = None
         self._dest_texture = None
-    
+
+    def get_sequence_context(self) -> SequenceContext:
+        """Return the sequence context."""
+        return self._sequence_context
+
     def release_dest_texture(self):
         """Release the destination moderngl texture."""
         if self._dest_texture is not None:

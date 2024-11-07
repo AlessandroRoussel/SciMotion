@@ -5,9 +5,12 @@ from gui.views.dialogs.sequence_dialog import SequenceDialog
 from gui.views.dialogs.solid_layer_dialog import SolidLayerDialog
 from core.services.project_service import ProjectService
 from core.services.render_service import RenderService
+from core.services.animation_service import AnimationService
 from core.entities.solid_layer import SolidLayer
+from core.entities.keyframe import Keyframe
 from core.entities.sequence import Sequence
 from utils.notification import Notification
+from data_types.number import Number
 from utils.image import Image
 
 
@@ -102,6 +105,12 @@ class SequenceGUIService:
             _end_frame = _seq.get_duration()
             _layer = SolidLayer(_title, _start_frame, _end_frame,
                                 _width, _height, _color)
+            
+            AnimationService.add_keyframe(
+                _layer.get_rotation(), Keyframe(100, Number(0)))
+            AnimationService.add_keyframe(
+                _layer.get_rotation(), Keyframe(500, Number(3.14159)))
+
             LayerService.add_layer_to_sequence(_layer, _seq)
             cls.update_sequence_signal.emit(cls._focused_sequence)
     
