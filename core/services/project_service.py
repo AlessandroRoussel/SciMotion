@@ -20,3 +20,12 @@ class ProjectService:
         _sequence_dict = Project.get_sequence_dict()
         _sequence_dict[_sequence_id] = sequence
         return _sequence_id
+    
+    @staticmethod
+    def get_sequence_by_id(sequence_id: int) -> Sequence:
+        """Get a sequence from its id in the project."""
+        _sequence_dict = Project.get_sequence_dict()
+        if sequence_id not in _sequence_dict:
+            return None
+        _sequence = _sequence_dict[sequence_id]
+        return _sequence

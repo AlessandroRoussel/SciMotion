@@ -66,9 +66,10 @@ class TimelineView(QGraphicsView):
         self.setScene(_scene)
         self.setStyleSheet("border: 0px")
         self.setMouseTracking(True)
-
-    def build_layers(self):
-        """Build the display of the layers."""
+    
+    def update_layers(self):
+        """Update the display of the layers."""
+        # TODO : not destroy all layers and rebuild
         self._layer_rect_list = []
         self.scene().clear()
         _index = 0
@@ -83,13 +84,13 @@ class TimelineView(QGraphicsView):
             _start_frame, _end_frame = _layer_rect.get_frame_bounds()
             _y = (len(_layer_list) - 1 - _index)*(_layer_height + _spacing)
             _width = _end_frame - _start_frame
-            _layer_rect.setRect(_start_frame, _y, _width, _layer_height)
+            _layer_rect.set_rect(_start_frame, _y, _width, _layer_height)
             self._stack_height += _layer_height + _spacing
             _index += 1
         self._stack_height = max(0, self._stack_height - _spacing)
         self.update_scene_rect()
         self.stack_height_signal.emit(self._stack_height)
-    
+
     def update_scene_rect(self):
         """Update the scene area to match the duration and layer stack."""
         _width = self._sequence.get_duration()
@@ -128,7 +129,7 @@ class TimelineView(QGraphicsView):
     def resizeEvent(self, event: QResizeEvent):
         """Handle resizing the viewport."""
         super().resizeEvent(event)
-        self.resize_signal.emit(event)
+        self.resize_signal.emit()
         self.update_scene_rect()
         _old_width = event.oldSize().width()
         _new_width = event.size().width()
@@ -182,8 +183,22 @@ class TimelineView(QGraphicsView):
 
         if self._dragging_cursor:
             _mouse_pos = event.position()
-            _frame = np.round(self.mapToScene(_mouse_pos.toPoint()).x())
-            SequenceGUIService.set_current_frame(_frame)
+            if event.modifiers() == Qt.ShiftModifier:
+                if len(self._layer_rect_list) > 0:
+                    _mouse_frame = self.mapToScene(_mouse_pos.toPoint()).x()
+                    _distance = float("inf")
+                    _frame = 0
+                    for _layer_rect in self._layer_rect_list:
+                        for _frm in _layer_rect.get_frame_bounds():
+                            if abs(_frm - _mouse_frame) < _distance:
+                                _distance = abs(_frm - _mouse_frame)
+                                _frame = _frm
+                                if _distance == 0:
+                                    break
+                    SequenceGUIService.set_current_frame(_frame)
+            else:
+                _frame = np.round(self.mapToScene(_mouse_pos.toPoint()).x())
+                SequenceGUIService.set_current_frame(_frame)
         
         if event.buttons() == Qt.NoButton:
             _mouse_pos = event.position()
@@ -235,26 +250,25 @@ class TimelineView(QGraphicsView):
         _brush = QBrush(_color)
         qp.setBrush(_brush)
         qp.setPen(Qt.NoPen)
-        _start_index = 2*np.floor(_y_min/2/_layer_block_height).astype(int)
-        _end_index = np.ceil(_y_max/_layer_block_height).astype(int)
-        for _index in range(_start_index, _end_index, 2):
-            _y = _index*_layer_block_height
-            qp.drawRect(rect.x()-1, _y, _rect_width+2, _layer_block_height)
+
+        if Config.timeline.horizontal_strips:
+            _start_index = 2*np.floor(_y_min/2/_layer_block_height).astype(int)
+            _end_index = np.ceil(_y_max/_layer_block_height).astype(int)
+            for _index in range(_start_index, _end_index, 2):
+                _y = _index*_layer_block_height
+                qp.drawRect(rect.x()-1, _y, _rect_width+2, _layer_block_height)
 
         # Draw vertical alternating blocks:
-        _frame_spacing = self.viewport().width() / _rect_width
-        _min_spacing = Config.timeline.time_grid_min_spacing
-        _rate = 1
-        _rate_ratios = [_fps, 60, 60]
-        for _rate_ratio in _rate_ratios:
-            if _frame_spacing*_rate > _min_spacing:
-                _min_subdiv = 2*np.floor(_min_frame/2/_rate).astype(int)
-                _max_subdiv = np.ceil(_max_frame/_rate).astype(int)
-                for _subdiv in range(_min_subdiv, _max_subdiv, 2):
-                    _frame = float(_subdiv)*_rate
-                    qp.drawRect(_frame, _y_min, _rate, rect.height())
-                break
-            _rate *= _rate_ratio
+        if Config.timeline.vertical_strips:
+            _rates = [_fps*3600, _fps*60, _fps, 1]
+            for _rate in _rates:
+                if _rate < _rect_width:
+                    _min_subdiv = 2*np.floor(_min_frame/2/_rate).astype(int)
+                    _max_subdiv = np.ceil(_max_frame/_rate).astype(int)
+                    for _subdiv in range(_min_subdiv, _max_subdiv, 2):
+                        _frame = float(_subdiv)*_rate
+                        qp.drawRect(_frame, _y_min, _rate, rect.height())
+                    break
 
     def drawForeground(self, qp: QPainter, rect: QRectF):
         """Draw the foreground ruler and elements."""
@@ -282,35 +296,26 @@ class TimelineView(QGraphicsView):
         _fps = self._sequence.get_frame_rate()
         _min_frame = np.floor(rect.x()).astype(int)
         _max_frame = np.ceil(rect.x()+rect.width()).astype(int)
-        _frame_spacing = self.viewport().width() / rect.width()
-        _min_spacing = Config.timeline.time_grid_min_spacing
-        _text_min_spacing = Config.timeline.time_text_min_spacing
-        _rate = 1
-        _rate_ratios = [_fps, 60, 60]
-        for _rate_ratio in _rate_ratios:
-            if _frame_spacing*_rate > _min_spacing:
-                _min_subdiv = _rate_ratio*np.floor(
-                                _min_frame/_rate/_rate_ratio)
-                _max_subdiv = np.ceil(_max_frame/_rate).astype(int)
-                _step = np.ceil(_text_min_spacing
-                                /_frame_spacing/_rate).astype(int)
-                _subdiv = _min_subdiv
-                _steps = 0
-                while _subdiv < _max_subdiv:
-                    _frame = _subdiv*_rate
-                    _text = Time.format_time(_frame, _fps, short=True)
-                    qp.drawText(
-                        _frame*self._x_zoom-_text_min_spacing/2,rect.y(),
-                        _text_min_spacing, _ruler_height,
-                        Qt.AlignmentFlag.AlignCenter, _text)
-                    _steps += _step
-                    if _steps >= _rate_ratio or _steps + _step > _rate_ratio:
-                        _subdiv = _rate_ratio*np.ceil(_subdiv/_rate_ratio)
-                        _steps = 0
-                    else:
-                        _subdiv += float(_step)
+        _grid_max_width = Config.timeline.time_grid_max_width
+        _text_max_width = Config.timeline.time_text_max_width
+        _rates = [_fps*3600, _fps*60, _fps, 1]
+        _ratios = [1, 60, 60, _fps]
+        for _rate, _sub_per_div in zip(_rates, _ratios):
+            if _rate*self._x_zoom < _grid_max_width:
+                _min_div = np.floor(_min_frame/_rate/_sub_per_div)
+                _max_div = np.ceil(_max_frame/_rate/_sub_per_div)
+                _step_size = int(np.ceil(_text_max_width/self._x_zoom/_rate))
+                _steps = int(_sub_per_div/_step_size)
+                for _div in range(int(_min_div), int(_max_div)):
+                    for _step in range(_steps):
+                        _subdiv = _step * _step_size
+                        _frame = (_div*_sub_per_div + _subdiv)*_rate
+                        _text = Time.format_time(_frame, _fps, short=True)
+                        qp.drawText(
+                            _frame*self._x_zoom-_text_max_width/2,rect.y(),
+                            _text_max_width, _ruler_height,
+                            Qt.AlignmentFlag.AlignCenter, _text)
                 break
-            _rate *= _rate_ratio
         qp.restore()
 
         # Cursor:

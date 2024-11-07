@@ -34,6 +34,7 @@ class TimelineList(QScrollArea):
         self._y_offset = 0
         self._middle_mouse_pressed = False
         self.y_offset_signal = Notification()
+        self._layer_line_list = []
 
         _widget = QWidget(self)
         self.setWidget(_widget)
@@ -48,9 +49,10 @@ class TimelineList(QScrollArea):
         self._layout.setContentsMargins(0, 0, 0, 0)
         _widget.setLayout(self._layout)
 
-    def build_layers(self):
-        """Build the display of the layers."""
-        self._layer_line_list = []
+    def update_layers(self):
+        """Update the display of the layers."""
+        # TODO : not destroy all layers and rebuild
+        self.clear_all()
         _layer_height = Config.timeline.layer_height
         _layer_list = self._sequence.get_layer_list()
         for _i in range(len(_layer_list)):
@@ -63,6 +65,14 @@ class TimelineList(QScrollArea):
                                       "color: black;")
             self._layer_line_list.append(_layer_line)
             self._layout.addWidget(_layer_line)
+
+    def clear_all(self):
+        """Remove all layers."""
+        for _layer_line in self._layer_line_list:
+            self._layout.removeWidget(_layer_line)
+            _layer_line.deleteLater()
+            _layer_line = None
+        self._layer_line_list = []
 
     def wheelEvent(self, event: QWheelEvent):
         """Override the wheel event."""

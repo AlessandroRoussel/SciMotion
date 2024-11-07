@@ -25,6 +25,11 @@ class RenderContext:
         self._height = height
         self._src_texture = None
         self._dest_texture = None
+    
+    def release_dest_texture(self):
+        """Release the destination moderngl texture."""
+        if self._dest_texture is not None:
+            self._dest_texture.release()
 
     def get_gl_context(self) -> moderngl.Context:
         """Return the moderngl context."""

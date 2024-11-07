@@ -52,9 +52,13 @@ class Config():
         cls.store(config, "timeline", "zoom_sensitivity", float)
         cls.store(config, "timeline", "scroll_sensitivity", float)
         cls.store(config, "timeline", "ruler_height", int)
-        cls.store(config, "timeline", "time_grid_min_spacing", int)
-        cls.store(config, "timeline", "time_text_min_spacing", int)
+        cls.store(config, "timeline", "time_grid_max_width", int)
+        cls.store(config, "timeline", "time_text_max_width", int)
         cls.store(config, "timeline", "cursor_handle_width", int)
+        cls.store(config, "timeline", "vertical_strips", bool)
+        cls.store(config, "timeline", "horizontal_strips", bool)
+
+        cls.store(config, "solid_layer", "default_title", str)
     
     @classmethod
     def store(cls,

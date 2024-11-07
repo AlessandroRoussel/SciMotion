@@ -22,26 +22,36 @@ class ViewerTab(QFrame):
     _gl_viewer: GLViewer
     _zoom_list: QComboBox
     _zoom_list_length: int
+    _current_frame: int
 
     def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
         self._sequence_id = sequence_id
+        self._current_frame = 0
+
         _layout = QVBoxLayout()
         _layout.setContentsMargins(0,0,0,0)
         _layout.setSpacing(0)
         self.setLayout(_layout)
 
-        self._gl_viewer = GLViewer(self)
+        self._gl_viewer = GLViewer(self, sequence_id)
         self._gl_viewer.wheelEvent = self.scroll_gl_viewer
         _tool_bar = self.create_tool_bar()
 
         _layout.addWidget(self._gl_viewer)
         _layout.addWidget(_tool_bar)
 
-        self._gl_viewer.set_image(
-            SequenceGUIService.request_image_from_sequence(sequence_id, 0))
         self._zoom_list.setCurrentIndex(1)
     
+    def set_current_frame(self, frame: int):
+        """Set the current frame."""
+        self._current_frame = frame
+        self._gl_viewer.set_current_frame(self._current_frame)
+    
+    def offset_current_frame(self, offset: int):
+        """Offset the current frame."""
+        self.set_current_frame(self._current_frame + offset)
+
     def scroll_gl_viewer(self, event: QWheelEvent):
         """Handle scrolling the GLViewer."""
         self._gl_viewer.wheel_scroll(event)
@@ -122,3 +132,7 @@ class ViewerTab(QFrame):
     def toggle_checkerboard(self, state: Qt.CheckState):
         """Manage transparency checkbox toggle."""
         self._gl_viewer.toggle_checkerboard(state is Qt.CheckState.Checked)
+    
+    def update_sequence(self):
+        """Handle updates in the sequence."""
+        self._gl_viewer.update_image()

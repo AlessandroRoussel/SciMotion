@@ -26,11 +26,11 @@ class Sequence:
                  height: int,
                  duration: int,
                  frame_rate: float):
-        self._title = title
-        self._width = width
-        self._height = height
-        self._duration = duration
-        self._frame_rate = frame_rate
+        self.set_title(title)
+        self.set_width(width)
+        self.set_height(height)
+        self.set_duration(duration)
+        self.set_frame_rate(frame_rate)
         self._layer_list = []
 
     def get_width(self) -> int:
@@ -52,6 +52,26 @@ class Sequence:
     def get_duration(self) -> int:
         """Return the sequence duration."""
         return self._duration
+
+    def set_width(self, width: int):
+        """Set the sequence width."""
+        self._width = width
+
+    def set_height(self, height: int):
+        """Set the sequence height."""
+        self._height = height
+    
+    def set_title(self, title: str):
+        """Set the sequence title."""
+        self._title = title
+    
+    def set_frame_rate(self, frame_rate: float):
+        """Set the sequence frame rate."""
+        self._frame_rate = frame_rate
+    
+    def set_duration(self, frames: int):
+        """Set the sequence duration."""
+        self._duration = frames
 
     def get_layer_list(self) -> list[Layer]:
         """Return a reference to the layer list."""

@@ -11,7 +11,7 @@ from PySide6.QtGui import QKeyEvent
 from PySide6.QtCore import Qt
 
 from gui.views.viewer.viewer_tab import ViewerTab
-from core.entities.project import Project
+from core.services.project_service import ProjectService
 from gui.services.sequence_gui_service import SequenceGUIService
 
 
@@ -26,6 +26,11 @@ class ViewerPane(QTabWidget):
         self.setTabsClosable(True)
         SequenceGUIService.open_sequence_signal.connect(self.open_sequence)
         SequenceGUIService.close_sequence_signal.connect(self.close_sequence)
+        SequenceGUIService.update_sequence_signal.connect(self.update_sequence)
+        SequenceGUIService.offset_current_frame_signal.connect(
+            self.offset_current_frame)
+        SequenceGUIService.set_current_frame_signal.connect(
+            self.set_current_frame)
         self.currentChanged.connect(self.on_tab_changed)
         self.tabCloseRequested.connect(self.close_tab)
 
@@ -35,11 +40,37 @@ class ViewerPane(QTabWidget):
             _tab_id = self._tabs.index(sequence_id)
             self.setCurrentIndex(_tab_id)
             return
-        _sequence = Project.get_sequence_dict()[sequence_id]
+        _sequence = ProjectService.get_sequence_by_id(sequence_id)
         _viewer_tab = ViewerTab(self, sequence_id)
         self._tabs.append(sequence_id)
         self.addTab(_viewer_tab, _sequence.get_title())
         self.setCurrentIndex(len(self._tabs)-1)
+    
+    def update_sequence(self, sequence_id: int):
+        """Update the tab corresponding to a sequence."""
+        if sequence_id not in self._tabs:
+            return
+        _tab_id = self._tabs.index(sequence_id)
+        _sequence = ProjectService.get_sequence_by_id(sequence_id)
+        self.setTabText(_tab_id, _sequence.get_title())
+        _tab = self.widget(_tab_id)
+        _tab.update_sequence()
+    
+    def offset_current_frame(self, sequence_id: int, offset: int):
+        """Offset the current frame in the tab corresponding to a sequence."""
+        if sequence_id not in self._tabs:
+            return
+        _tab_id = self._tabs.index(sequence_id)
+        _tab = self.widget(_tab_id)
+        _tab.offset_current_frame(offset)
+    
+    def set_current_frame(self, sequence_id: int, frame: int):
+        """Set the current frame in the tab corresponding to a sequence."""
+        if sequence_id not in self._tabs:
+            return
+        _tab_id = self._tabs.index(sequence_id)
+        _tab = self.widget(_tab_id)
+        _tab.set_current_frame(frame)
     
     def close_sequence(self, sequence_id: int):
         """Close the tab corresponding to a sequence."""

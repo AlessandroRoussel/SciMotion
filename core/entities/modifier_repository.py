@@ -9,7 +9,7 @@ It ensures that they are loaded once across the application.
 from core.entities.modifier_template import ModifierTemplate
 
 
-class ModifierRepository():
+class ModifierRepository:
     """Repository of all modifier templates loaded in the app."""
 
     _repository: dict[str, ModifierTemplate] = dict()

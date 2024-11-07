@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QFrame, QWidget, QSplitter, QVBoxLayout,
                                QGridLayout, QScrollBar)
 
 from utils.config import Config
-from core.entities.project import Project
+from core.services.project_service import ProjectService
 from core.entities.sequence import Sequence
 from core.entities.layer import Layer
 from gui.views.timeline.timeline_view import TimelineView
@@ -39,16 +39,12 @@ class TimelineTab(QFrame):
     def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
         self._sequence_id = sequence_id
-        self._sequence = Project.get_sequence_dict()[sequence_id]
+        self._sequence = ProjectService.get_sequence_by_id(sequence_id)
         self._x_offset = 0
         self._y_offset = 0
         self._x_zoom = 1
         self._stack_height = 0
         self._current_frame = 0
-
-        for i in range(20):
-            _layer = Layer(f"Layer {i}", i*30, i*30+60)
-            LayerService.add_layer_to_sequence(_layer, self._sequence)
 
         # Right panel:
         _right_widget = QWidget(self)
@@ -118,13 +114,9 @@ class TimelineTab(QFrame):
         self._list.y_offset_signal.connect(self.set_y_offset)
         self._view.x_zoom_signal.connect(self.set_x_zoom)
         self._view.stack_height_signal.connect(self.set_stack_height)
-        SequenceGUIService.offset_current_frame_signal.connect(
-            self.offset_current_frame_from_app)
-        SequenceGUIService.set_current_frame_signal.connect(
-            self.set_current_frame_from_app)
 
-        self._list.build_layers()
-        self._view.build_layers()
+        self._list.update_layers()
+        self._view.update_layers()
     
     def set_x_offset(self, x_offset: float):
         """Scroll horizontally."""
@@ -186,7 +178,7 @@ class TimelineTab(QFrame):
         """Handle moving the vertical scroll bar."""
         self.set_y_offset(value)
     
-    def handle_view_resized(self, event: QResizeEvent):
+    def handle_view_resized(self):
         """Handle resizing the view."""
         self.set_x_zoom(self._x_zoom)
         self._v_scroll_bar.setPageStep(self._view.viewport().height()
@@ -204,13 +196,17 @@ class TimelineTab(QFrame):
 
         # Update widgets:
         self._view.set_current_frame(self._current_frame)
-    
-    def offset_current_frame_from_app(self, sequence_id: int, offset: int):
-        """Handle offseting the current frame."""
-        if self._sequence_id == sequence_id:
-            self.set_current_frame(self._current_frame + offset)
 
-    def set_current_frame_from_app(self, sequence_id: int, frame: int):
-        """Handle setting the current frame."""
-        if self._sequence_id == sequence_id:
-            self.set_current_frame(frame)
+    def offset_current_frame(self, offset: int):
+        """Offset the current frame."""
+        self.set_current_frame(self._current_frame + offset)
+
+    def update_sequence(self):
+        """Handles updating the sequence."""
+        self.set_x_zoom(self._x_zoom)
+        self.set_x_offset(self._x_offset)
+        self.set_y_offset(self._y_offset)
+        self.set_current_frame(self._current_frame)
+        self._view.update_scene_rect()
+        self._view.update_layers()
+        self._list.update_layers()

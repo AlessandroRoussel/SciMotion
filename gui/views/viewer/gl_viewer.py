@@ -24,6 +24,8 @@ class GLViewer(QOpenGLWidget):
     _vao: np.uintc
     _texture_id: np.uintc
 
+    _sequence_id: int
+    _current_frame: int
     _image: Image
     _zoom: float
     _center_x: float
@@ -35,9 +37,11 @@ class GLViewer(QOpenGLWidget):
     _checkerboard: bool
     _texture_loaded: bool
 
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
+        self._sequence_id = sequence_id
         self._image = None
+        self._current_frame = 0
         self._zoom = 1
         self._center_x = .5
         self._center_y = .5
@@ -47,7 +51,14 @@ class GLViewer(QOpenGLWidget):
         self._mouse_last_position = None
         self._texture_loaded = False
         self._checkerboard = False
+        self.update_image()
     
+    def set_current_frame(self, frame: int):
+        """Set the current frame value."""
+        if frame != self._current_frame:
+            self._current_frame = frame
+            self.update_image()
+
     def toggle_checkerboard(self, state: bool):
         """Toggle transparency checkerboard status."""
         self._checkerboard = state
@@ -74,12 +85,11 @@ class GLViewer(QOpenGLWidget):
         """Compile shaders and create program."""
         _vertex_code = """
         #version 330
-		in vec2 in_pos;
 		in vec2 in_uv;
 		out vec2 tex_uv;
 		uniform mat4 u_transform;
 		void main(){
-			gl_Position = u_transform * vec4(in_pos,0.,1.);
+			gl_Position = u_transform * vec4(in_uv*2.-1.,0.,1.);
 			tex_uv = in_uv;
 		}
         """
@@ -130,11 +140,7 @@ class GLViewer(QOpenGLWidget):
 
     def init_quad(self):
         """Create quad vertex array."""
-        _vertices = np.array([
-            -1, -1, 0, 0,
-            1, -1, 1, 0,
-            -1, 1, 0, 1,
-            1, 1, 1, 1], dtype=np.float32)
+        _vertices = np.array([0,0,1,0,0,1,1,1], dtype=np.float32)
         
         self._vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(self._vao)
@@ -146,16 +152,6 @@ class GLViewer(QOpenGLWidget):
                         _vertices,
                         GL.GL_STATIC_DRAW)
 
-        # Position attribute
-        _pos_attrib = GL.glGetAttribLocation(self._program, "in_pos")
-        GL.glEnableVertexAttribArray(_pos_attrib)
-        GL.glVertexAttribPointer(_pos_attrib,
-                                 2,
-                                 GL.GL_FLOAT,
-                                 GL.GL_FALSE,
-                                 4 * _vertices.itemsize,
-                                 GL.ctypes.c_void_p(0))
-
         # Texture uv attribute
         _uv_attrib = GL.glGetAttribLocation(self._program, "in_uv")
         GL.glEnableVertexAttribArray(_uv_attrib)
@@ -163,8 +159,8 @@ class GLViewer(QOpenGLWidget):
                                  2,
                                  GL.GL_FLOAT,
                                  GL.GL_FALSE,
-                                 4 * _vertices.itemsize,
-                                 GL.ctypes.c_void_p(2 * _vertices.itemsize))
+                                 2 * _vertices.itemsize,
+                                 GL.ctypes.c_void_p(0))
         GL.glBindVertexArray(0)
         GL.glDeleteBuffers(1, [_vbo])
 
@@ -361,4 +357,11 @@ class GLViewer(QOpenGLWidget):
         _img_height = self._image.get_height()
         self._center_x -= delta.x() / self._zoom / _img_width
         self._center_y -= delta.y() / self._zoom / _img_height
+        self.update()
+
+    def update_image(self):
+        """Update the displayed image."""
+        self.set_image(
+            SequenceGUIService.request_image_from_sequence(
+                self._sequence_id, self._current_frame))
         self.update()

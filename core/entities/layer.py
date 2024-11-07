@@ -24,8 +24,8 @@ class Layer:
                  start_frame: int,
                  end_frame: int):
         self._title = title
-        self._start_frame = start_frame
-        self._end_frame = end_frame
+        self.set_start_frame(start_frame)
+        self.set_end_frame(end_frame)
         self._modifier_list = []
 
     def get_modifier_list(self) -> list[Modifier]:
@@ -39,6 +39,14 @@ class Layer:
     def get_end_frame(self) -> int:
         """Return the layer end frame."""
         return self._end_frame
+
+    def set_start_frame(self, frame: int):
+        """Set the layer start frame."""
+        self._start_frame = frame
+
+    def set_end_frame(self, frame: int):
+        """Set the layer end frame."""
+        self._end_frame = frame
 
     def get_title(self) -> str:
         """Return the layer title."""

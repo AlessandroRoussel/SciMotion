@@ -49,7 +49,9 @@ class MainMenuBar(QMenuBar):
         
         _menu.addSeparator()
 
-        _parameters = self._action("Sequence parameters", None)
+        _parameters = self._action("Sequence parameters",
+                                   SequenceGUIService.open_sequence_parameters,
+                                   "Ctrl+K")
         _parameters.setEnabled(False)
         SequenceGUIService.focus_sequence_signal.connect(
             lambda sequence_id:
@@ -61,8 +63,14 @@ class MainMenuBar(QMenuBar):
         """Create the layer menu."""
         _menu = self.addMenu("&Layer")
 
-        _new_solid = self._action("New solid layer", None, "Ctrl+Y")
+        _new_solid = self._action("New solid layer",
+                                  SequenceGUIService.create_new_solid_layer,
+                                  "Ctrl+Y")
         _new_solid.setEnabled(False)
+        SequenceGUIService.focus_sequence_signal.connect(
+            lambda sequence_id:
+            self._toggle_action(_new_solid, sequence_id is not None)
+        )
         _menu.addAction(_new_solid)
 
         _menu.addSeparator()
