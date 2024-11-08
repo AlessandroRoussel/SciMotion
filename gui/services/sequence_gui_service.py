@@ -1,5 +1,7 @@
 """A set of services for sequence related GUI elements."""
 
+import moderngl
+
 from core.services.layer_service import LayerService
 from gui.views.dialogs.sequence_dialog import SequenceDialog
 from gui.views.dialogs.solid_layer_dialog import SolidLayerDialog
@@ -62,14 +64,16 @@ class SequenceGUIService:
             cls.update_sequence_signal.emit(cls._focused_sequence)
     
     @staticmethod
-    def request_image_from_sequence(sequence_id: int, frame: int) -> Image:
+    def request_texture_from_sequence(sequence_id: int,
+                                      frame: int
+                                      ) -> moderngl.Texture:
         """Return a rendered frame within a sequence."""
         # TODO : Optimize a lot this part, render only if needed
         # (probably better to do it in the core package,
         # with a MemoryStorage class for instance)
         _sequence = ProjectService.get_sequence_by_id(sequence_id)
-        _image = RenderService.render_sequence_frame(_sequence, frame)
-        return _image
+        _texture = RenderService.render_sequence_frame(_sequence, frame)
+        return _texture
 
     @classmethod
     def focus_sequence(cls, sequence_id: int=None):

@@ -138,8 +138,11 @@ class RenderService:
         return _texture
 
     @classmethod
-    def render_sequence_frame(cls, sequence: Sequence, frame: int) -> Image:
-        """Render a frame of a Sequence to an Image."""
+    def render_sequence_frame(cls,
+                              sequence: Sequence,
+                              frame: int
+                              ) -> moderngl.Texture:
+        """Render a frame of a Sequence to an OpenGL texture."""
         _width = sequence.get_width()
         _height = sequence.get_height()
         _sequence_ctx = SequenceContext(sequence, frame)
@@ -166,10 +169,7 @@ class RenderService:
             _texture.release()
             cls._composite_over(cls._transform_texture, _result_texture)
 
-        # TODO : Optimize long operation (20 ms):
-        _image = cls._image_from_texture(_result_texture)
-        _result_texture.release()
-        return _image
+        return _result_texture
 
     @classmethod
     def _composite_over(cls,

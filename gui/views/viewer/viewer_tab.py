@@ -135,4 +135,4 @@ class ViewerTab(QFrame):
     
     def update_sequence(self):
         """Handle updates in the sequence."""
-        self._gl_viewer.update_image()
+        self._gl_viewer.update_texture()

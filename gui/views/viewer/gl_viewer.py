@@ -5,6 +5,8 @@ The GLViewer inherits from QOpenGLWidget and provides
 an OpenGL context for displaying renders and media.
 """
 
+import time
+
 import numpy as np
 import moderngl
 from PySide6.QtWidgets import QWidget
@@ -25,7 +27,6 @@ class GLViewer(QOpenGLWidget):
 
     _sequence_id: int
     _current_frame: int
-    _image: Image
     _zoom: float
     _center_x: float
     _center_y: float
@@ -38,7 +39,6 @@ class GLViewer(QOpenGLWidget):
     def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
         self._sequence_id = sequence_id
-        self._image = None
         self._current_frame = 0
         self._zoom = 1
         self._center_x = .5
@@ -49,25 +49,27 @@ class GLViewer(QOpenGLWidget):
         self._mouse_last_position = None
         self._checkerboard = False
         self._texture = None
-        self.update_image()
+        self.update_texture()
     
     def set_current_frame(self, frame: int):
         """Set the current frame value."""
         if frame != self._current_frame:
             self._current_frame = frame
-            self.update_image()
+            self.update_texture()
 
     def toggle_checkerboard(self, state: bool):
         """Toggle transparency checkerboard status."""
         self._checkerboard = state
         self.update()
     
-    def set_image(self, image: Image):
-        """Set the displayed image."""
-        self._image = image
+    def set_texture(self, texture: moderngl.Texture):
+        """Set the displayed texture."""
         if self._texture is not None:
             self._texture.release()
-        self._texture = None
+        self._texture = texture
+        self._texture.repeat_x = False
+        self._texture.repeat_y = False
+        self._texture.filter = moderngl.LINEAR, moderngl.NEAREST
 
     def resizeGL(self, width: int, height: int):
         """React to resizing."""
@@ -135,27 +137,14 @@ class GLViewer(QOpenGLWidget):
         _vbo = gl_context.buffer(_vertices.tobytes())
         self._vao = gl_context.vertex_array(self._program, _vbo, "in_uv")
 
-    def load_texture_from_image(self, gl_context: moderngl.Context):
-        """Load the image into the OpenGL texture."""
-        if self._texture is not None:
-            return
-        _width = self._image.get_width()
-        _height = self._image.get_height()
-        _data = self._image.get_data_bytes()
-        self._texture = gl_context.texture(
-            (_width, _height), 4, data=_data, dtype="f4")
-        self._texture.repeat_x = False
-        self._texture.repeat_y = False
-        self._texture.filter = moderngl.LINEAR, moderngl.NEAREST
-
     def paintGL(self):
         """Paint the OpenGL context."""
+        _start_time = time.perf_counter()
         _gl_context = moderngl.create_context()
         _qt_color = self.palette().window().color()
         _gl_context.clear(_qt_color.redF(), _qt_color.greenF(),
                                         _qt_color.blueF(), 1)
-        if self._image is not None:
-            self.load_texture_from_image(_gl_context)
+        if self._texture is not None:
             self._texture.use(location=0)
             self._program["u_texture"] = 0
             _transform = self.transformation_matrix()
@@ -164,16 +153,18 @@ class GLViewer(QOpenGLWidget):
             self._program["u_dimensions"] = self.width(), self.height()
             self._vao.render(moderngl.TRIANGLE_STRIP)
 
+        print("Paint time:", (time.perf_counter()-_start_time)*1000)
+
     def transformation_matrix(self) -> np.ndarray:
-        """Return the transformation matrix for displaying the image."""
+        """Return the transformation matrix for displaying the texture."""
         _width = self.width()
         _height = self.height()
-        _img_width = self._image.get_width()
-        _img_height = self._image.get_height()
-        _scale_x = self._zoom * _img_width / _width
-        _scale_y = self._zoom * _img_height / _height
-        _offset_x = self._zoom * (1 - 2*self._center_x) * _img_width/_width
-        _offset_y = self._zoom * (-1 + 2*self._center_y) * _img_height/_height
+        _tex_width = self._texture.width
+        _tex_height = self._texture.height
+        _scale_x = self._zoom * _tex_width / _width
+        _scale_y = self._zoom * _tex_height / _height
+        _offset_x = self._zoom * (1 - 2*self._center_x) * _tex_width/_width
+        _offset_y = self._zoom * (-1 + 2*self._center_y) * _tex_height/_height
         _transform = np.array([
             _scale_x, 0, 0, 0,
             0, _scale_y, 0, 0,
@@ -197,13 +188,13 @@ class GLViewer(QOpenGLWidget):
         """Set the viewer to fit its contents."""
         self._center_x = .5
         self._center_y = .5
-        if self._image is not None:
+        if self._texture is not None:
             _padding = Config.viewer.fit_padding
             _width = self.width() - 2*_padding
             _height = self.height() - 2*_padding
-            _img_width = self._image.get_width()
-            _img_height = self._image.get_height()
-            _zoom = min(_width/_img_width, _height/_img_height)
+            _tex_width = self._texture.width
+            _tex_height = self._texture.height
+            _zoom = min(_width/_tex_width, _height/_tex_height)
             if max_zoom is not None:
                 _zoom = min(_zoom, max_zoom)
             self.set_zoom(_zoom)
@@ -218,55 +209,55 @@ class GLViewer(QOpenGLWidget):
         self._fitting_zoom = False
         self.update()
 
-    def widget_to_image_coords(self,
-                               widget_x: float,
-                               widget_y: float
-                               ) -> tuple[float, float]:
-        """Convert widget coordinates to image coordinates."""
-        _img_width = self._image.get_width()
-        _img_height = self._image.get_height()
+    def widget_to_texture_coords(self,
+                                 widget_x: float,
+                                 widget_y: float
+                                 ) -> tuple[float, float]:
+        """Convert widget coordinates to texture coordinates."""
+        _tex_width = self._texture.width
+        _tex_height = self._texture.height
         _img_x = (widget_x - self.width()/2) / self._zoom
         _img_y = (widget_y - self.height()/2) / self._zoom
-        _img_x += self._center_x*_img_width
-        _img_y += self._center_y*_img_height
+        _img_x += self._center_x*_tex_width
+        _img_y += self._center_y*_tex_height
         return _img_x, _img_y
     
-    def image_to_widget_coords(self,
-                               img_x: float,
-                               img_y: float
-                               ) -> tuple[float, float]:
-        """Convert image coordinates to widget coordinates."""
-        _img_width = self._image.get_width()
-        _img_height = self._image.get_height()
-        _widget_x = (img_x - self._center_x*_img_width) * self._zoom
-        _widget_y = (img_y - self._center_y*_img_height) * self._zoom
+    def texture_to_widget_coords(self,
+                                 img_x: float,
+                                 img_y: float
+                                 ) -> tuple[float, float]:
+        """Convert texture coordinates to widget coordinates."""
+        _tex_width = self._texture.width
+        _tex_height = self._texture.height
+        _widget_x = (img_x - self._center_x*_tex_width) * self._zoom
+        _widget_y = (img_y - self._center_y*_tex_height) * self._zoom
         _widget_x += self.width()/2
         _widget_y += self.height()/2
         return _widget_x, _widget_y
     
     def wheel_scroll(self, event: QWheelEvent):
         """Handle the wheel scroll event."""
-        if self._image is None:
+        if self._texture is None:
             return
         _delta = event.angleDelta().y()
         _mouse_pos = event.position()
-        _img_x, _img_y = self.widget_to_image_coords(_mouse_pos.x(),
-                                                        _mouse_pos.y())
-        _img_width = self._image.get_width()
-        _img_height = self._image.get_height()
+        _img_x, _img_y = self.widget_to_texture_coords(_mouse_pos.x(),
+                                                       _mouse_pos.y())
+        _tex_width = self._texture.width
+        _tex_height = self._texture.height
         _factor = np.exp(_delta / 100. * Config.viewer.zoom_sensitivity)
         self.set_zoom(self._zoom * _factor)
         if Config.viewer.zoom_around_cursor:
-            self._center_x = _img_x/_img_width - (
-                _img_x/_img_width - self._center_x)/_factor
-            self._center_y = _img_y/_img_height - (
-                _img_y/_img_height - self._center_y)/_factor
+            self._center_x = _img_x/_tex_width - (
+                _img_x/_tex_width - self._center_x)/_factor
+            self._center_y = _img_y/_tex_height - (
+                _img_y/_tex_height - self._center_y)/_factor
         self._fitting_zoom = False
         self.update()
     
     def mousePressEvent(self, event: QMouseEvent):
         """Handle the mouse press event."""
-        if self._image is not None and event.button() == Qt.MiddleButton:
+        if self._texture is not None and event.button() == Qt.MiddleButton:
             self._mouse_middle_dragging = True
             self._mouse_last_position = event.position()
             self.setCursor(Qt.ClosedHandCursor)
@@ -279,7 +270,7 @@ class GLViewer(QOpenGLWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle the mouse move event."""
-        if self._image is not None and self._mouse_middle_dragging:
+        if self._texture is not None and self._mouse_middle_dragging:
             _current_pos = event.position()
             _delta = _current_pos - self._mouse_last_position
             self.middle_mouse_button_drag(_delta)
@@ -287,17 +278,19 @@ class GLViewer(QOpenGLWidget):
 
     def middle_mouse_button_drag(self, delta: float):
         """Drag using middle mouse button."""
-        if self._image is None:
+        if self._texture is None:
             return
-        _img_width = self._image.get_width()
-        _img_height = self._image.get_height()
-        self._center_x -= delta.x() / self._zoom / _img_width
-        self._center_y -= delta.y() / self._zoom / _img_height
+        _tex_width = self._texture.width
+        _tex_height = self._texture.height
+        self._center_x -= delta.x() / self._zoom / _tex_width
+        self._center_y -= delta.y() / self._zoom / _tex_height
         self.update()
 
-    def update_image(self):
-        """Update the displayed image."""
-        self.set_image(
-            SequenceGUIService.request_image_from_sequence(
+    def update_texture(self):
+        """Update the displayed texture."""
+        _start_time = time.perf_counter()
+        self.set_texture(
+            SequenceGUIService.request_texture_from_sequence(
                 self._sequence_id, self._current_frame))
+        print("Render time:", (time.perf_counter()-_start_time)*1000)
         self.update()
