@@ -235,12 +235,13 @@ class RenderService:
             uniform vec2 scale;
             uniform float rotation;
             void main() {
-                mat2 rot = mat2(cos(rotation), -sin(rotation),
-                                sin(rotation), cos(rotation));
+                mat2 rot = mat2(cos(rotation), sin(rotation),
+                                -sin(rotation), cos(rotation));
                 vec2 transformed_pos = texture_size*scale*(in_uv-anchor);
                 transformed_pos = rot*transformed_pos;
                 transformed_pos += position*context_size;
                 transformed_pos = transformed_pos*2./context_size - 1.;
+                transformed_pos.y *= -1.;
                 gl_Position = vec4(transformed_pos, 0., 1.);
                 uv = in_uv;
             }

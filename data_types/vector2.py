@@ -15,5 +15,5 @@ class Vector2(NDArray):
 
     _value: np.ndarray
 
-    def __init__(self, value: float):
-        super().__init__(value, dtype=np.float32, shape=2)
+    def __init__(self, *values):
+        super().__init__(*values, dtype=np.float32, shape=2)

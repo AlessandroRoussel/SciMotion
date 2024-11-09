@@ -7,8 +7,9 @@ the user with a visual timeline within a TimelineTab.
 
 import numpy as np
 from PySide6.QtCore import Qt, QRectF, QLineF, QPointF
-from PySide6.QtGui import (QBrush, QTextItem, QResizeEvent, QMouseEvent,
-                           QWheelEvent, QPainter, QPen, QPolygonF, QKeyEvent)
+from PySide6.QtGui import (QBrush, QColor, QResizeEvent, QMouseEvent,
+                           QWheelEvent, QPainter, QPen, QPolygonF,
+                           QKeyEvent)
 from PySide6.QtWidgets import (QGraphicsView, QGraphicsScene, QWidget)
 
 from utils.config import Config
@@ -24,6 +25,7 @@ class TimelineView(QGraphicsView):
 
     _sequence: Sequence
     _layer_rect_list: list[LayerRect]
+    _selected_layer_rects: set[LayerRect]
     _middle_mouse_pressed: bool
     _dragging_cursor: bool
     _prev_mouse_pos: QPointF
@@ -45,6 +47,7 @@ class TimelineView(QGraphicsView):
 
         self._sequence = sequence
         self._layer_rect_list = []
+        self._selected_layer_rects = set()
         self._dragging_cursor = False
         self._middle_mouse_pressed = False
         self._x_offset = 0
@@ -59,6 +62,8 @@ class TimelineView(QGraphicsView):
         self.y_offset_signal = Notification()
 
         _scene = QGraphicsScene()
+        _scene.setStickyFocus(False)
+
         self.setRenderHint(QPainter.Antialiasing, True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -66,11 +71,14 @@ class TimelineView(QGraphicsView):
         self.setScene(_scene)
         self.setStyleSheet("border: 0px")
         self.setMouseTracking(True)
+
+        self.setFocusPolicy(Qt.WheelFocus)
     
     def update_layers(self):
         """Update the display of the layers."""
         # TODO : not destroy all layers and rebuild
         self._layer_rect_list = []
+        self._selected_layer_rects = set()
         self.scene().clear()
         _index = 0
         self._stack_height = 0
@@ -91,12 +99,18 @@ class TimelineView(QGraphicsView):
         self.update_scene_rect()
         self.stack_height_signal.emit(self._stack_height)
 
+    def select_layer(self, layer_rect: LayerRect):
+        """Handle selecting a layer."""
+        print(layer_rect)
+
     def update_scene_rect(self):
         """Update the scene area to match the duration and layer stack."""
-        _width = self._sequence.get_duration()
+        _padding = Config.timeline.horizontal_padding
+        _width = self._sequence.get_duration() + 2*_padding/self._x_zoom
         _height = max(self.viewport().height(), self._stack_height)
         _ruler_height = Config.timeline.ruler_height
-        self.setSceneRect(0, -_ruler_height, _width, _height + _ruler_height)
+        self.setSceneRect(-_padding/self._x_zoom, -_ruler_height,
+                          _width, _height + _ruler_height)
         self.update_transform()
 
     def set_x_offset(self, x_offset: float):
@@ -117,6 +131,7 @@ class TimelineView(QGraphicsView):
     def set_x_zoom(self, x_zoom: float):
         """Set the x zoom value."""
         self._x_zoom = x_zoom
+        self.update_scene_rect()
         self.update_transform()
     
     def update_transform(self):
@@ -124,7 +139,8 @@ class TimelineView(QGraphicsView):
         self.resetTransform()
         self.setTransformationAnchor(QGraphicsView.NoAnchor)
         self.scale(self._x_zoom, 1)
-        self.translate(-self._x_offset/self._x_zoom, -self._y_offset)
+        self.translate(-self._x_offset/self._x_zoom,
+                       -self._y_offset)
     
     def resizeEvent(self, event: QResizeEvent):
         """Handle resizing the viewport."""
@@ -158,11 +174,13 @@ class TimelineView(QGraphicsView):
     
     def mousePressEvent(self, event: QMouseEvent):
         """Handle the mouse press event."""
+
         if event.button() == Qt.MiddleButton:
             self._middle_mouse_pressed = True
             self._prev_mouse_pos = event.position()
             self.setCursor(Qt.ClosedHandCursor)
             return
+        
         if (event.button() == Qt.LeftButton
             and event.position().y() < Config.timeline.ruler_height):
             self._dragging_cursor = True
@@ -170,7 +188,22 @@ class TimelineView(QGraphicsView):
             _frame = np.round(self.mapToScene(_mouse_pos.toPoint()).x())
             SequenceGUIService.set_current_frame(_frame)
             self.setCursor(Qt.SizeHorCursor)
+            self.update()
             return
+        
+        if event.button() == Qt.LeftButton:
+            _item = self.itemAt(event.pos())
+            if event.modifiers() != Qt.ControlModifier:
+                if len(self._selected_layer_rects) > 0:
+                    for _selected_rect in self._selected_layer_rects:
+                        _selected_rect.deselect()
+                    self._selected_layer_rects = set()
+            if _item is None or not isinstance(_item, LayerRect):
+                self.update()
+                return
+            self._selected_layer_rects.add(_item)
+            _item.select()
+            self.update()
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle the mouse move event."""
@@ -238,20 +271,21 @@ class TimelineView(QGraphicsView):
         _layer_height = Config.timeline.layer_height
         _layer_spacing = Config.timeline.layer_spacing
         _layer_block_height = _layer_height + _layer_spacing
-        _min_frame = np.floor(rect.x()).astype(int)
-        _max_frame = np.ceil(rect.x()+rect.width()).astype(int)
+        _min_frame = max(0, np.floor(rect.x()).astype(int))
+        _max_frame = min(np.ceil(rect.x()+rect.width()).astype(int),
+                         self._sequence.get_duration()-1)
         _y_min = rect.y()
         _y_max = rect.y() + rect.height()
         _rect_width = rect.width()
 
         # Draw horizontal alternating blocks:
         _color = self.palette().text().color()
-        _color.setAlpha(10)
+        _color.setAlphaF(.02)
         _brush = QBrush(_color)
         qp.setBrush(_brush)
         qp.setPen(Qt.NoPen)
 
-        if Config.timeline.horizontal_strips:
+        if Config.timeline.horizontal_stripes:
             _start_index = 2*np.floor(_y_min/2/_layer_block_height).astype(int)
             _end_index = np.ceil(_y_max/_layer_block_height).astype(int)
             for _index in range(_start_index, _end_index, 2):
@@ -259,7 +293,7 @@ class TimelineView(QGraphicsView):
                 qp.drawRect(rect.x()-1, _y, _rect_width+2, _layer_block_height)
 
         # Draw vertical alternating blocks:
-        if Config.timeline.vertical_strips:
+        if Config.timeline.vertical_stripes:
             _rates = [_fps*3600, _fps*60, _fps, 1]
             for _rate in _rates:
                 if _rate < _rect_width:
@@ -291,13 +325,27 @@ class TimelineView(QGraphicsView):
                                rect.x()+rect.width(), rect.y()+_ruler_height)
         qp.drawLine(_ruler_border)
 
+        # Draw out of range blocks:
+        _color = QColor("black")
+        _color.setAlphaF(.25)
+        _brush = QBrush(_color)
+        qp.setBrush(_brush)
+        qp.setPen(Qt.NoPen)
+        _padding = Config.timeline.horizontal_padding
+        _width = np.ceil(_padding / self._x_zoom).astype(int)
+        qp.drawRect(-_width, -_ruler_height,
+                    _width, rect.height())
+        qp.drawRect(self._sequence.get_duration(), -_ruler_height,
+                    _width, rect.height())
+
         # Ruler texts:
         qp.save()
         qp.scale(1/self._x_zoom, 1)
         qp.setPen(QPen(self.palette().text().color()))
         _fps = self._sequence.get_frame_rate()
-        _min_frame = np.floor(rect.x()).astype(int)
-        _max_frame = np.ceil(rect.x()+rect.width()).astype(int)
+        _min_frame = max(0, np.floor(rect.x()).astype(int))
+        _max_frame = min(np.ceil(rect.x()+rect.width()).astype(int),
+                         self._sequence.get_duration())
         _grid_max_width = Config.timeline.time_grid_max_width
         _text_max_width = Config.timeline.time_text_max_width
         _rates = [_fps*3600, _fps*60, _fps, 1]
@@ -321,7 +369,7 @@ class TimelineView(QGraphicsView):
         qp.restore()
 
         # Cursor:
-        _pen = QPen(self.palette().text().color())
+        _pen = QPen(self.palette().accent().color())
         _pen.setCosmetic(True)
         _pen.setWidthF(1.5)
         qp.setPen(_pen)
@@ -329,7 +377,7 @@ class TimelineView(QGraphicsView):
                                self._current_frame, rect.y()+rect.height())
         qp.drawLine(_ruler_border)
 
-        qp.setBrush(QBrush(self.palette().text().color()))
+        qp.setBrush(QBrush(self.palette().accent().color()))
         _triangle_width = Config.timeline.cursor_handle_width/self._x_zoom
         _triangle = QPolygonF([
             QPointF(self._current_frame-_triangle_width/2, rect.y()),
@@ -338,8 +386,8 @@ class TimelineView(QGraphicsView):
         qp.drawPolygon(_triangle)
 
         # Cursor frame:
-        _color = self.palette().text().color()
-        _color.setAlpha(50)
+        _color = self.palette().accent().color()
+        _color.setAlphaF(.1)
         _brush = QBrush(_color)
         qp.setBrush(_brush)
         qp.setPen(Qt.NoPen)

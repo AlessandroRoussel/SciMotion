@@ -42,6 +42,7 @@ class ViewerTab(QFrame):
         _layout.addWidget(_tool_bar)
 
         self._zoom_list.setCurrentIndex(1)
+        self.setFocusPolicy(Qt.StrongFocus)
     
     def set_current_frame(self, frame: int):
         """Set the current frame."""
@@ -136,3 +137,9 @@ class ViewerTab(QFrame):
     def update_sequence(self):
         """Handle updates in the sequence."""
         self._gl_viewer.update_texture()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """Handle key press events."""
+        if event.key() == Qt.Key_F:
+            self._gl_viewer.fit_to_frame(max_zoom=1, just_once=True)
+            self.update_zoom_value()

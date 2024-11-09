@@ -49,6 +49,7 @@ class GLViewer(QOpenGLWidget):
         self._mouse_last_position = None
         self._checkerboard = False
         self._texture = None
+        self.setFocusPolicy(Qt.WheelFocus)
         self.update_texture()
     
     def set_current_frame(self, frame: int):
@@ -139,7 +140,6 @@ class GLViewer(QOpenGLWidget):
 
     def paintGL(self):
         """Paint the OpenGL context."""
-        _start_time = time.perf_counter()
         _gl_context = moderngl.create_context()
         _qt_color = self.palette().window().color()
         _gl_context.clear(_qt_color.redF(), _qt_color.greenF(),
@@ -152,8 +152,6 @@ class GLViewer(QOpenGLWidget):
             self._program["u_checkerboard"] = self._checkerboard
             self._program["u_dimensions"] = self.width(), self.height()
             self._vao.render(moderngl.TRIANGLE_STRIP)
-
-        print("Paint time:", (time.perf_counter()-_start_time)*1000)
 
     def transformation_matrix(self) -> np.ndarray:
         """Return the transformation matrix for displaying the texture."""
@@ -288,9 +286,7 @@ class GLViewer(QOpenGLWidget):
 
     def update_texture(self):
         """Update the displayed texture."""
-        _start_time = time.perf_counter()
         self.set_texture(
             SequenceGUIService.request_texture_from_sequence(
                 self._sequence_id, self._current_frame))
-        print("Render time:", (time.perf_counter()-_start_time)*1000)
         self.update()

@@ -49,6 +49,8 @@ class TimelineList(QScrollArea):
         self._layout.setContentsMargins(0, 0, 0, 0)
         _widget.setLayout(self._layout)
 
+        self.setFocusPolicy(Qt.WheelFocus)
+
     def update_layers(self):
         """Update the display of the layers."""
         # TODO : not destroy all layers and rebuild
