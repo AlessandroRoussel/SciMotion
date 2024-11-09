@@ -5,6 +5,7 @@ The TimelineTab inherits from QFrame and provides the user with
 a visual timeline within the TimelinePane.
 """
 
+import numpy as np
 from PySide6.QtCore import Qt, QPointF, QPoint
 from PySide6.QtWidgets import (QFrame, QWidget, QSplitter, QVBoxLayout,
                                QGridLayout, QScrollBar, QSlider, QHBoxLayout)
@@ -60,12 +61,12 @@ class TimelineTab(QFrame):
         self._zoom_slider.setRange(0, 100)
         self._zoom_slider.setTickInterval(1)
         self._zoom_slider.setValue(0)
-        _horizontal_scroll_layout.addWidget(self._zoom_slider, 0, 0)
-        _horizontal_scroll_layout.setColumnStretch(0, 0)
-        _horizontal_scroll_layout.setColumnStretch(1, 1)
+        _horizontal_scroll_layout.addWidget(self._zoom_slider, 0, 1)
+        _horizontal_scroll_layout.setColumnStretch(0, 1)
+        _horizontal_scroll_layout.setColumnStretch(1, 0)
 
         self._h_scroll_bar = QScrollBar(Qt.Horizontal, self)
-        _horizontal_scroll_layout.addWidget(self._h_scroll_bar, 0, 1)
+        _horizontal_scroll_layout.addWidget(self._h_scroll_bar, 0, 0)
         _right_layout.setRowMinimumHeight(
             1, max(self._h_scroll_bar.sizeHint().height(),
                    self._zoom_slider.sizeHint().height()))
@@ -133,27 +134,19 @@ class TimelineTab(QFrame):
     
     def set_x_offset(self, x_offset: float):
         """Scroll horizontally."""
-        _padding = Config.timeline.horizontal_padding
-        _max_offset = (self._sequence.get_duration()*self._x_zoom + 2*_padding
-                       - self._view.viewport().width())
-        self._x_offset = max(0, min(x_offset, _max_offset))
+        self._x_offset = max(0, min(x_offset, self.max_x_offset()))
 
         # Update widgets:
         self._view.set_x_offset(self._x_offset)
         self._h_scroll_bar.setValue(self._x_offset)
 
-    def set_x_zoom(self, x_zoom: float, relative: bool = False):
+    def set_x_zoom(self, x_zoom: float):
         """Zoom horizontally."""
-        _padding = Config.timeline.horizontal_padding
-        _duration = self._sequence.get_duration()
         _view_width = self._view.viewport().width()
-        _min_zoom = (_view_width - 2*_padding) / _duration
-        _max_zoom = Config.timeline.max_pixels_per_frame
-        _zoom = x_zoom
-        if relative:
-            _zoom = _min_zoom + x_zoom*(_max_zoom-_min_zoom)
-        self._x_zoom = max(_min_zoom, min(_zoom, _max_zoom))
-        _max_offset = _duration*self._x_zoom + 2*_padding - _view_width
+        _min_zoom = self.min_x_zoom()
+        _max_zoom = self.max_x_zoom()
+        self._x_zoom = max(_min_zoom, min(x_zoom, _max_zoom))
+        _max_offset = self.max_x_offset()
         if self._x_offset > _max_offset:
             self.set_x_offset(_max_offset)
         
@@ -162,15 +155,11 @@ class TimelineTab(QFrame):
         self._h_scroll_bar.setRange(0, _max_offset)
         self._h_scroll_bar.setPageStep(_view_width)
         self._h_scroll_bar.setVisible(_max_offset > 0)
-        self._zoom_slider.setValue(round(100*(self._x_zoom-_min_zoom)
-                                         /(_max_zoom-_min_zoom)))
+        self._zoom_slider.setValue(self.slider_value_from_zoom(self._x_zoom))
     
     def set_y_offset(self, y_offset: float):
         """Scroll vertically."""
-        _max_offset = max(0, self._stack_height
-                             - self._view.viewport().height()
-                             + Config.timeline.ruler_height)
-        self._y_offset = max(0, min(y_offset, _max_offset))
+        self._y_offset = max(0, min(y_offset, self.max_y_offset()))
 
         # Update widgets:
         self._view.set_y_offset(self._y_offset)
@@ -180,15 +169,13 @@ class TimelineTab(QFrame):
     def set_stack_height(self, stack_height: float):
         """Update the layer stack total height."""
         self._stack_height = stack_height
-        _max_offset = max(0, self._stack_height
-                             - self._view.viewport().height()
-                             + Config.timeline.ruler_height)
-        if self._y_offset > _max_offset:
-            self.set_y_offset(_max_offset)
+        _max_y_offset = self.max_y_offset()
+        if self._y_offset > _max_y_offset:
+            self.set_y_offset(_max_y_offset)
         
         # Update widgets:
-        self._v_scroll_bar.setRange(0, _max_offset)
-        self._v_scroll_bar.setVisible(_max_offset > 0)
+        self._v_scroll_bar.setRange(0, _max_y_offset)
+        self._v_scroll_bar.setVisible(_max_y_offset > 0)
     
     def horiz_scroll_bar_moved(self, value: int):
         """Handle moving the horizontal scroll bar."""
@@ -203,11 +190,9 @@ class TimelineTab(QFrame):
         self.set_x_zoom(self._x_zoom)
         self._v_scroll_bar.setPageStep(self._view.viewport().height()
                                        - Config.timeline.ruler_height)
-        _max_offset = max(0, self._stack_height
-                             - self._view.viewport().height()
-                             + Config.timeline.ruler_height)
-        self._v_scroll_bar.setRange(0, _max_offset)
-        self._v_scroll_bar.setVisible(_max_offset > 0)
+        _max_y_offset = self.max_y_offset()
+        self._v_scroll_bar.setRange(0, _max_y_offset)
+        self._v_scroll_bar.setVisible(_max_y_offset > 0)
     
     def set_current_frame(self, frame: int):
         """Set the current frame."""
@@ -242,7 +227,50 @@ class TimelineTab(QFrame):
         else:
             _fixed_frame = (_left_frame + _right_frame)/2
         _fixed_pos = self._view.mapFromScene(QPointF(_fixed_frame, 0)).x()
-        self.set_x_zoom(float(value)/100, True)
+        _zoom = self.zoom_from_slider_value(value)
+        self.set_x_zoom(_zoom)
         _new_pos = self._view.mapFromScene(QPointF(_fixed_frame, 0)).x()
         _delta = _new_pos - _fixed_pos
         self.set_x_offset(self._x_offset + _delta)
+    
+    def zoom_from_slider_value(self, value: int) -> float:
+        """Return the zoom value corresponding to the slider value."""
+        _percentage = float(value)/100
+        _min_zoom = self.min_x_zoom()
+        _max_zoom = self.max_x_zoom()
+        _zoom = _min_zoom * np.float_power(_max_zoom/_min_zoom, _percentage)
+        return _zoom
+    
+    def slider_value_from_zoom(self, zoom: float) -> int:
+        """Return the slider value closest to correspond with the zoom."""
+        _min_zoom = self.min_x_zoom()
+        _max_zoom = self.max_x_zoom()
+        _percentage = np.log(zoom/_min_zoom) / np.log(_max_zoom/_min_zoom)
+        return round(_percentage*100)
+    
+    def min_x_zoom(self) -> float:
+        """Return the minimum allowed zoom value."""
+        _padding = Config.timeline.horizontal_padding
+        _duration = self._sequence.get_duration()
+        _view_width = self._view.viewport().width()
+        _min_zoom = (_view_width - 2*_padding) / _duration
+        return _min_zoom
+    
+    def max_x_zoom(self) -> float:
+        """Return the maximum allowed zoom value."""
+        return Config.timeline.max_pixels_per_frame
+    
+    def max_x_offset(self) -> float:
+        """Return the maximum allowed x offset value."""
+        _padding = Config.timeline.horizontal_padding
+        _duration = self._sequence.get_duration()
+        _view_width = self._view.viewport().width()
+        _max_offset = _duration*self._x_zoom + 2*_padding - _view_width
+        return _max_offset
+    
+    def max_y_offset(self) -> float:
+        """Return the maximum allowed y offset value."""
+        _max_y_offset = max(0, self._stack_height
+                               - self._view.viewport().height()
+                               + Config.timeline.ruler_height)
+        return _max_y_offset

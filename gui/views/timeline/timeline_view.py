@@ -9,7 +9,7 @@ import numpy as np
 from PySide6.QtCore import Qt, QRectF, QLineF, QPointF
 from PySide6.QtGui import (QBrush, QColor, QResizeEvent, QMouseEvent,
                            QWheelEvent, QPainter, QPen, QPolygonF,
-                           QKeyEvent)
+                           QKeyEvent, QFontMetrics)
 from PySide6.QtWidgets import (QGraphicsView, QGraphicsScene, QWidget)
 
 from utils.config import Config
@@ -237,9 +237,12 @@ class TimelineView(QGraphicsView):
             _mouse_pos = event.position()
             _current_frame_x = self.mapFromScene(
                 QPointF(self._current_frame, 0)).x()
-            if (_mouse_pos.y() < Config.timeline.ruler_height
+            _ruler_height = Config.timeline.ruler_height
+            _min_cursor_y = _ruler_height-Config.timeline.cursor_handle_height
+            if (_mouse_pos.y() < _ruler_height
+                and _mouse_pos.y() >= _min_cursor_y
                 and (abs(_mouse_pos.x() - _current_frame_x)
-                     < Config.timeline.cursor_handle_width/2)):
+                     <= Config.timeline.cursor_handle_width/2)):
                     self.setCursor(Qt.SizeHorCursor)
             else:
                 self.setCursor(Qt.ArrowCursor)
@@ -296,11 +299,11 @@ class TimelineView(QGraphicsView):
         if Config.timeline.vertical_stripes:
             _rates = [_fps*3600, _fps*60, _fps, 1]
             for _rate in _rates:
-                if _rate < _rect_width:
-                    _min_subdiv = 2*np.floor(_min_frame/2/_rate).astype(int)
-                    _max_subdiv = np.ceil(_max_frame/_rate).astype(int)
-                    for _subdiv in range(_min_subdiv, _max_subdiv, 2):
-                        _frame = float(_subdiv)*_rate
+                if _rate < _rect_width or _rate == 1:
+                    _min_div = 2*np.floor(_min_frame/2/_rate).astype(int)
+                    _max_div = np.ceil(_max_frame/_rate).astype(int)
+                    for _div in range(_min_div, _max_div, 2):
+                        _frame = float(_div)*_rate
                         qp.drawRect(_frame, _y_min, _rate, rect.height())
                     break
 
@@ -314,16 +317,6 @@ class TimelineView(QGraphicsView):
         qp.setBrush(QBrush(self.palette().window().color()))
         _ruler = QRectF(rect.x(), rect.y(), rect.width(), _ruler_height)
         qp.drawRect(_ruler)
-
-        # Ruler border:
-        _color = self.palette().text().color()
-        _pen = QPen(_color)
-        _pen.setCosmetic(True)
-        _pen.setWidth(1)
-        qp.setPen(_pen)
-        _ruler_border = QLineF(rect.x(), rect.y()+_ruler_height,
-                               rect.x()+rect.width(), rect.y()+_ruler_height)
-        qp.drawLine(_ruler_border)
 
         # Draw out of range blocks:
         _color = QColor("black")
@@ -341,31 +334,81 @@ class TimelineView(QGraphicsView):
         # Ruler texts:
         qp.save()
         qp.scale(1/self._x_zoom, 1)
-        qp.setPen(QPen(self.palette().text().color()))
+
+        _color = self.palette().text().color()
+        _pen = QPen(_color)
+        _pen.setCosmetic(True)
+        _pen.setWidth(1)
+
+        _color.setAlphaF(.3)
+        _pen_translucent = QPen(_color)
+        _pen_translucent.setCosmetic(True)
+        _pen_translucent.setWidth(1)
+
+        _font = qp.font()
+        _font.setPixelSize(Config.timeline.time_text_size)
+        _font_metrics = QFontMetrics(_font)
+        qp.setFont(_font)
+
         _fps = self._sequence.get_frame_rate()
         _min_frame = max(0, np.floor(rect.x()).astype(int))
         _max_frame = min(np.ceil(rect.x()+rect.width()).astype(int),
                          self._sequence.get_duration())
-        _grid_max_width = Config.timeline.time_grid_max_width
-        _text_max_width = Config.timeline.time_text_max_width
-        _rates = [_fps*3600, _fps*60, _fps, 1]
-        _ratios = [1, 60, 60, _fps]
-        for _rate, _sub_per_div in zip(_rates, _ratios):
-            if _rate*self._x_zoom < _grid_max_width:
-                _min_div = np.floor(_min_frame/_rate/_sub_per_div)
-                _max_div = np.ceil(_max_frame/_rate/_sub_per_div)
-                _step_size = int(np.ceil(_text_max_width/self._x_zoom/_rate))
-                _steps = int(_sub_per_div/_step_size)
-                for _div in range(int(_min_div), int(_max_div)):
-                    for _step in range(_steps):
-                        _subdiv = _step * _step_size
-                        _frame = (_div*_sub_per_div + _subdiv)*_rate
+        _text_padding = Config.timeline.time_text_padding
+        _duration_str = Time.format_time(self._sequence.get_duration(), _fps)
+        _text_width = (_font_metrics.horizontalAdvance(_duration_str)
+                           + _text_padding)
+        _text_height = _font_metrics.height()
+
+        _rates = [1, _fps, _fps*60, _fps*3600, _fps*3600]
+        _sub_div_nums = [1, _fps, 60, 60, 1]
+        for _i in range(len(_rates)):
+            _rate =_rates[_i]
+            _sub_divs = _sub_div_nums[_i]
+            if _i == len(_rates)-1:
+                _power = int(np.ceil(np.log2(_text_width
+                                             /_rate/self._x_zoom)))
+                _rate *= 2**_power
+                _sub_div_nums *= 2**_power
+            if _rate*self._x_zoom >= _text_width:
+                _min_div = np.floor(_min_frame/_rate)
+                _max_div = np.ceil(_max_frame/_rate)
+                _sub_step_size = int(np.ceil(
+                    _sub_divs*_text_width/self._x_zoom/_rate))
+                _sub_steps = max(1, int(_sub_divs/_sub_step_size))
+                for _div in range(int(_min_div), int(_max_div)+1):
+                    for _sub_step in range(_sub_steps):
+                        _sub_div = _sub_step * _sub_step_size
+                        _frame = (_div + _sub_div/_sub_divs) * _rate
                         _text = Time.format_time(_frame, _fps, short=True)
-                        qp.drawText(
-                            _frame*self._x_zoom-_text_max_width/2,rect.y(),
-                            _text_max_width, _ruler_height,
-                            Qt.AlignmentFlag.AlignCenter, _text)
+                        if _sub_step == 0:
+                            qp.setPen(_pen)
+                            qp.drawLine(
+                                _frame*self._x_zoom, rect.y(),
+                                _frame*self._x_zoom, rect.y()+_ruler_height)
+                            qp.drawText(QRectF(
+                                _frame*self._x_zoom+_text_padding,
+                                rect.y()+_ruler_height-_text_height,
+                                _text_width,
+                                _text_height),
+                                Qt.AlignLeft,
+                                _text)
+                        else:
+                            qp.setPen(_pen_translucent)
+                            qp.drawLine(
+                                _frame*self._x_zoom,
+                                rect.y()+_ruler_height-_text_height,
+                                _frame*self._x_zoom,
+                                rect.y()+_ruler_height)
+                            qp.drawText(QRectF(
+                                _frame*self._x_zoom+_text_padding,
+                                rect.y()+_ruler_height-_text_height,
+                                _text_width,
+                                _text_height),
+                                Qt.AlignLeft,
+                                _text)
                 break
+
         qp.restore()
 
         # Cursor:
@@ -373,17 +416,25 @@ class TimelineView(QGraphicsView):
         _pen.setCosmetic(True)
         _pen.setWidthF(1.5)
         qp.setPen(_pen)
-        _ruler_border = QLineF(self._current_frame, rect.y(),
+        _ruler_border = QLineF(self._current_frame, rect.y()+_ruler_height,
                                self._current_frame, rect.y()+rect.height())
         qp.drawLine(_ruler_border)
 
         qp.setBrush(QBrush(self.palette().accent().color()))
         _triangle_width = Config.timeline.cursor_handle_width/self._x_zoom
+        _cursor_height = Config.timeline.cursor_handle_height
+        _triangle_height = _cursor_height/3
+        _rect_height = _cursor_height - _triangle_height
+        _start_y = rect.y()+_ruler_height-_triangle_height
         _triangle = QPolygonF([
-            QPointF(self._current_frame-_triangle_width/2, rect.y()),
-            QPointF(self._current_frame, rect.y()+_ruler_height),
-            QPointF(self._current_frame+_triangle_width/2, rect.y())])
+            QPointF(self._current_frame-_triangle_width/2, _start_y),
+            QPointF(self._current_frame, _start_y+_triangle_height),
+            QPointF(self._current_frame+_triangle_width/2, _start_y)])
         qp.drawPolygon(_triangle)
+        qp.drawRect(QRectF(self._current_frame-_triangle_width/2,
+                           _start_y-_rect_height,
+                           _triangle_width,
+                           _rect_height))
 
         # Cursor frame:
         _color = self.palette().accent().color()
