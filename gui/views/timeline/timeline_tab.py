@@ -137,8 +137,10 @@ class TimelineTab(QFrame):
         self._x_offset = max(0, min(x_offset, self.max_x_offset()))
 
         # Update widgets:
+        self._h_scroll_bar.blockSignals(True)
         self._view.set_x_offset(self._x_offset)
         self._h_scroll_bar.setValue(self._x_offset)
+        self._h_scroll_bar.blockSignals(False)
 
     def set_x_zoom(self, x_zoom: float):
         """Zoom horizontally."""
@@ -151,20 +153,26 @@ class TimelineTab(QFrame):
             self.set_x_offset(_max_offset)
         
         # Update widgets:
+        self._h_scroll_bar.blockSignals(True)
+        self._zoom_slider.blockSignals(True)
         self._view.set_x_zoom(self._x_zoom)
         self._h_scroll_bar.setRange(0, _max_offset)
         self._h_scroll_bar.setPageStep(_view_width)
         self._h_scroll_bar.setVisible(_max_offset > 0)
         self._zoom_slider.setValue(self.slider_value_from_zoom(self._x_zoom))
+        self._h_scroll_bar.blockSignals(False)
+        self._zoom_slider.blockSignals(False)
     
     def set_y_offset(self, y_offset: float):
         """Scroll vertically."""
         self._y_offset = max(0, min(y_offset, self.max_y_offset()))
 
         # Update widgets:
+        self._v_scroll_bar.blockSignals(True)
         self._view.set_y_offset(self._y_offset)
         self._list.set_y_offset(self._y_offset)
         self._v_scroll_bar.setValue(self._y_offset)
+        self._v_scroll_bar.blockSignals(False)
     
     def set_stack_height(self, stack_height: float):
         """Update the layer stack total height."""
@@ -174,8 +182,10 @@ class TimelineTab(QFrame):
             self.set_y_offset(_max_y_offset)
         
         # Update widgets:
+        self._v_scroll_bar.blockSignals(True)
         self._v_scroll_bar.setRange(0, _max_y_offset)
         self._v_scroll_bar.setVisible(_max_y_offset > 0)
+        self._v_scroll_bar.blockSignals(False)
     
     def horiz_scroll_bar_moved(self, value: int):
         """Handle moving the horizontal scroll bar."""

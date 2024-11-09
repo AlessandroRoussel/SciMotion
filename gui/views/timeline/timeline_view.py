@@ -132,13 +132,15 @@ class TimelineView(QGraphicsView):
         """Set the x zoom value."""
         self._x_zoom = x_zoom
         self.update_scene_rect()
-        self.update_transform()
     
     def update_transform(self):
         """Update the transformation matrix."""
         self.resetTransform()
         self.setTransformationAnchor(QGraphicsView.NoAnchor)
         self.scale(self._x_zoom, 1)
+        _padding = Config.timeline.horizontal_padding
+        _ruler_height = Config.timeline.ruler_height
+        self.centerOn(-_padding/self._x_zoom, -_ruler_height)
         self.translate(-self._x_offset/self._x_zoom,
                        -self._y_offset)
     
