@@ -13,6 +13,7 @@ import numpy as np
 
 from core.entities.modifier_repository import ModifierRepository
 from core.entities.modifier import Modifier
+from core.entities.modifier_template import ModifierFlag
 from core.entities.render_context import RenderContext
 from core.entities.sequence_context import SequenceContext
 from core.entities.visual_layer import VisualLayer
@@ -22,6 +23,7 @@ from core.entities.gl_context import GLContext
 from core.entities.parameter import Parameter
 from data_types.data_type import DataType
 from core.services.animation_service import AnimationService
+from core.services.modifier_service import ModifierService
 from data_types.color import Color
 from utils.image import Image
 from utils.config import Config
@@ -98,7 +100,15 @@ class RenderService:
         _color = cls.get_parameter_value(layer.get_color(), sequence_ctx)
         _texture = cls.create_color_texture(_width, _height, _color)
         _context.set_src_texture(_texture)
-        for _modifier in layer.get_modifier_list():
+        _modifier_list = layer.get_modifier_list()
+        _start_index = 0
+        for _modifier_index in range(_start_index, len(_modifier_list)):
+            _modifier = _modifier_list[_modifier_index]
+            if ModifierService.modifier_has_flag(
+                _modifier, ModifierFlag.WRITEONLY):
+                _start_index = _modifier_index
+        for _modifier_index in range(_start_index, len(_modifier_list)):
+            _modifier = _modifier_list[_modifier_index]
             cls.apply_modifier_to_render_context(_modifier, _context)
             _context.roll_textures()
         _context.release_dest_texture()

@@ -5,9 +5,9 @@ The ModifierBrowser panel provides the user with
 a browser of all the modifiers loaded in the app.
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QMimeData
 from PySide6.QtWidgets import (QWidget, QTreeView)
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtGui import QStandardItem, QStandardItemModel, QDrag
 
 from core.entities.modifier_repository import ModifierRepository
 from core.services.modifier_service import ModifierService
@@ -24,6 +24,23 @@ class ModifierBrowser(QTreeView):
         self._model.setHorizontalHeaderLabels(["Modifiers"])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setModel(self._model)
+        self.setDragDropMode(QTreeView.DragOnly)
+        self.setSelectionMode(QTreeView.SingleSelection)
+        self.setSelectionBehavior(QTreeView.SelectRows)
+
+    def startDrag(self, supportedActions: Qt.DropAction):
+        """Drag with mime data containing the modifier's name id."""
+        _index = self.currentIndex()
+        if not _index.isValid():
+            return
+        _mime_data = QMimeData()
+        _name_id = self.model().data(_index, Qt.UserRole)
+        if _name_id is None:
+            return
+        _mime_data.setText(_name_id)
+        _drag = QDrag(self)
+        _drag.setMimeData(_mime_data)
+        _drag.exec(supportedActions)
 
     def _create_browser_model(self):
         """Create a data model from the modifiers structure."""
@@ -42,6 +59,7 @@ class ModifierBrowser(QTreeView):
                 _modifier_template = _repository[_name_id]
                 _modifier_title = _modifier_template.get_title().title()
                 _item = QStandardItem(_modifier_title)
+                _item.setData(_name_id, Qt.UserRole)
                 _item.setEditable(False)
                 parent.appendRow(_item)
             else:

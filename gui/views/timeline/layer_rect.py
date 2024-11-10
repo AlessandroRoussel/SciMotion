@@ -3,31 +3,31 @@
 from typing import Any
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QGraphicsRectItem, QWidget, QApplication,
-                               QGraphicsSceneMouseEvent)
-from PySide6.QtGui import QBrush, QPen, QPainter
+from PySide6.QtWidgets import (QGraphicsRectItem, QApplication,
+                               QGraphicsSceneDragDropEvent)
+from PySide6.QtGui import QBrush
 
 from core.entities.layer import Layer
-from utils.notification import Notification
+from gui.services.layer_gui_service import LayerGUIService
+from gui.services.sequence_gui_service import SequenceGUIService
 
 
 class LayerRect(QGraphicsRectItem):
     """The visual representation of a Layer in the TimelineView."""
 
     _layer: Layer
-    _brush: QBrush
-    _selected_brush: QBrush
-    _pen: QPen
+    _sequence_id: int
     _selected: bool
 
-    def __init__(self, layer: Layer):
+    def __init__(self, layer: Layer, sequence_id: int):
         super().__init__()
         self._layer = layer
-        self._brush = QBrush(QApplication.palette().light().color())
-        self._selected_brush = QBrush(QApplication.palette().text().color())
-        self._pen = Qt.NoPen
+        self._sequence_id = sequence_id
         self._selected = False
+        self.setPen(Qt.NoPen)
+        self.deselect()
         self.setFlags(QGraphicsRectItem.ItemIsMovable)
+        self.setAcceptDrops(True)
     
     def set_rect(self, x: float, y: float, w: float, h: float):
         """Set the layer's rectangular area."""
@@ -37,17 +37,31 @@ class LayerRect(QGraphicsRectItem):
         """Return the start and end frame of the corresponding Layer."""
         return self._layer.get_start_frame(), self._layer.get_end_frame()
 
-    def paint(self, qp: QPainter, option: Any, widget: QWidget = None):
-        """Paint the item."""
-        qp.setRenderHint(QPainter.Antialiasing)
-        qp.setBrush(self._selected_brush if self._selected else self._brush)
-        qp.setPen(self._pen)
-        qp.drawRect(self.rect())
-
     def select(self):
         """Select this layer."""
-        self._selected = True
+        self.setBrush(QBrush(QApplication.palette().text().color()))
     
     def deselect(self):
         """De-select this layer."""
-        self._selected = False
+        self.setBrush(QBrush(QApplication.palette().light().color()))
+
+    def dragEnterEvent(self, event: QGraphicsSceneDragDropEvent):
+        """Handle the drag entering the item."""
+        if event.mimeData().hasText():
+            event.acceptProposedAction()
+            self.setBrush(QBrush(QApplication.palette().accent().color()))
+
+    def dragLeaveEvent(self, event: QGraphicsSceneDragDropEvent):
+        """Reset visual feedback when drag leaves the item."""
+        if self._selected:
+            self.select()
+        else:
+            self.deselect()
+
+    def dropEvent(self, event: QGraphicsSceneDragDropEvent):
+        """Handle the drop event."""
+        if event.mimeData().hasText():
+            _name_id = event.mimeData().text()
+            LayerGUIService.add_modifier_to_layer(self._layer, _name_id)
+            SequenceGUIService.update_sequence_signal.emit(self._sequence_id)
+            event.acceptProposedAction()

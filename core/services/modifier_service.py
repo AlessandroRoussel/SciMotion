@@ -13,7 +13,7 @@ import importlib.util
 import inspect
 
 from data_types.data_type_name import DataTypeName
-from core.entities.modifier_template import ModifierTemplate, ModifierFlags
+from core.entities.modifier_template import ModifierTemplate, ModifierFlag
 from core.entities.modifier_repository import ModifierRepository
 from core.entities.parameter_template import ParameterTemplate
 from core.entities.parameter import Parameter
@@ -97,10 +97,12 @@ class ModifierService:
         if not isinstance(_flags, list):
             raise TypeError(f"Attribute '_flags' in modifier "
                             f"'{_name_id}' should be a list of str.")
-        for _flag in _flags:
-            if not hasattr(ModifierFlags, _flag):
-                raise ValueError(f"Unkown flag '{_flag}' in "
+        for _flag_id in range(len(_flags)):
+            _flag_str = _flags[_flag_id]
+            if not hasattr(ModifierFlag, _flag_str):
+                raise ValueError(f"Unkown flag '{_flag_str}' in "
                                  f"modifier '{_name_id}'")
+            _flags[_flag_id] = getattr(ModifierFlag, _flag_str)
 
         # Retrieve parameters templates
         _parameters_info = getattr(_module, "_parameters", [])
@@ -257,3 +259,10 @@ class ModifierService:
         """Add a Modifier to a Layer."""
         _modifier_list = layer.get_modifier_list()
         _modifier_list.append(modifier)
+
+    @staticmethod
+    def modifier_has_flag(modifier: Modifier, flag: ModifierFlag):
+        """Checks if a modifier holds a flag."""
+        _template_id = modifier.get_template_id()
+        _template = ModifierRepository.get_template(_template_id)
+        return flag in _template.get_flags()

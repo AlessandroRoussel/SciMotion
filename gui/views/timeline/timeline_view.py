@@ -10,19 +10,22 @@ from PySide6.QtCore import Qt, QRectF, QLineF, QPointF
 from PySide6.QtGui import (QBrush, QColor, QResizeEvent, QMouseEvent,
                            QWheelEvent, QPainter, QPen, QPolygonF,
                            QKeyEvent, QFontMetrics)
-from PySide6.QtWidgets import (QGraphicsView, QGraphicsScene, QWidget)
+from PySide6.QtWidgets import (QGraphicsView, QGraphicsScene, QWidget,
+                               QGraphicsSceneDragDropEvent)
 
 from utils.config import Config
 from utils.notification import Notification
 from core.entities.sequence import Sequence
 from gui.views.timeline.layer_rect import LayerRect
 from gui.services.sequence_gui_service import SequenceGUIService
+from core.services.project_service import ProjectService
 from utils.time import Time
 
 
 class TimelineView(QGraphicsView):
     """The visual timeline part of a TimelineTab."""
 
+    _sequence_id: int
     _sequence: Sequence
     _layer_rect_list: list[LayerRect]
     _selected_layer_rects: set[LayerRect]
@@ -42,10 +45,11 @@ class TimelineView(QGraphicsView):
     stack_height_signal: Notification
     y_offset_signal: Notification
 
-    def __init__(self, parent: QWidget, sequence: Sequence):
+    def __init__(self, parent: QWidget, sequence_id: int):
         super().__init__(parent)
 
-        self._sequence = sequence
+        self._sequence_id = sequence_id
+        self._sequence = ProjectService.get_sequence_by_id(sequence_id)
         self._layer_rect_list = []
         self._selected_layer_rects = set()
         self._dragging_cursor = False
@@ -71,7 +75,8 @@ class TimelineView(QGraphicsView):
         self.setScene(_scene)
         self.setStyleSheet("border: 0px")
         self.setMouseTracking(True)
-
+        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
+        self.setOptimizationFlags(QGraphicsView.DontSavePainterState)
         self.setFocusPolicy(Qt.WheelFocus)
     
     def update_layers(self):
@@ -86,7 +91,7 @@ class TimelineView(QGraphicsView):
         _layer_height = Config.timeline.layer_height
         _layer_list = self._sequence.get_layer_list()
         for _layer in _layer_list:
-            _layer_rect = LayerRect(_layer)
+            _layer_rect = LayerRect(_layer, self._sequence_id)
             self._layer_rect_list.append(_layer_rect)
             self.scene().addItem(_layer_rect)
             _start_frame, _end_frame = _layer_rect.get_frame_bounds()
@@ -206,6 +211,8 @@ class TimelineView(QGraphicsView):
             self._selected_layer_rects.add(_item)
             _item.select()
             self.update()
+        
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle the mouse move event."""
@@ -248,6 +255,8 @@ class TimelineView(QGraphicsView):
                     self.setCursor(Qt.SizeHorCursor)
             else:
                 self.setCursor(Qt.ArrowCursor)
+        
+        super().mouseMoveEvent(event)
 
 
     def mouseReleaseEvent(self, event: QMouseEvent):
@@ -260,15 +269,7 @@ class TimelineView(QGraphicsView):
             self._dragging_cursor = False
             self.setCursor(Qt.ArrowCursor)
             return
-
-    def keyPressEvent(self, event: QKeyEvent):
-        """Handle key press events."""
-        if event.key() == Qt.Key_Left:
-            SequenceGUIService.offset_current_frame(-1)
-            return
-        if event.key() == Qt.Key_Right:
-            SequenceGUIService.offset_current_frame(1)
-            return
+        super().mouseReleaseEvent(event)
 
     def draw_stripes(self, qp: QPainter, rect: QRectF):
         """Draw the horizontal and vertical stripes."""
@@ -446,3 +447,15 @@ class TimelineView(QGraphicsView):
         qp.setPen(Qt.NoPen)
         qp.drawRect(self._current_frame, rect.y()+_ruler_height,
                     1, rect.height())
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """Handle key press events."""
+        if event.key() == Qt.Key_Left:
+            SequenceGUIService.offset_current_frame(-1)
+            return
+        if event.key() == Qt.Key_Right:
+            SequenceGUIService.offset_current_frame(1)
+            return
+        if event.key() == Qt.Key_F:
+            self.x_zoom_signal.emit(0)
+            return

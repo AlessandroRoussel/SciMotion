@@ -13,7 +13,7 @@ from typing import Callable
 from core.entities.parameter_template import ParameterTemplate
 
 
-class ModifierFlags(Enum):
+class ModifierFlag(Enum):
     """Enumerate all the flags a Modifier can exhibit."""
 
     WRITEONLY = 0
@@ -23,14 +23,14 @@ class ModifierTemplate:
     """Represents a template for instanciating Modifier objects."""
 
     _title: str
-    _flags: set[ModifierFlags]
+    _flags: set[ModifierFlag]
     _parameter_template_list: list[ParameterTemplate]
     _apply_function: Callable
 
     def __init__(self,
                  apply_function: Callable,
                  title: str = "",
-                 flags: set[str] = set(),
+                 flags: set[ModifierFlag] = set(),
                  parameter_template_list: list[ParameterTemplate] = []):
         self._title = title
         self._parameter_template_list = parameter_template_list
@@ -48,3 +48,7 @@ class ModifierTemplate:
     def get_apply_function(self) -> Callable:
         """Retrieve the modifier apply function."""
         return self._apply_function
+
+    def get_flags(self) -> set[ModifierFlag]:
+        """Retrieve effect flags."""
+        return self._flags

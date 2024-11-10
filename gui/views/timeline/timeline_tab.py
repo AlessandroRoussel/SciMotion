@@ -7,8 +7,9 @@ a visual timeline within the TimelinePane.
 
 import numpy as np
 from PySide6.QtCore import Qt, QPointF, QPoint
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (QFrame, QWidget, QSplitter, QVBoxLayout,
-                               QGridLayout, QScrollBar, QSlider, QHBoxLayout)
+                               QGridLayout, QScrollBar, QSlider)
 
 from utils.config import Config
 from core.services.project_service import ProjectService
@@ -49,7 +50,7 @@ class TimelineTab(QFrame):
         _right_widget = QWidget(self)
         _right_layout = QGridLayout(_right_widget)
         
-        self._view = TimelineView(self, self._sequence)
+        self._view = TimelineView(self, self._sequence_id)
         _right_layout.addWidget(self._view, 0, 0)
 
         _horizontal_scroll_layout = QGridLayout()

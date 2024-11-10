@@ -112,33 +112,6 @@ class SequenceGUIService:
             _end_frame = _seq.get_duration()
             _layer = SolidLayer(_title, _start_frame, _end_frame,
                                 _width, _height, _color)
-            
-            # Temporary test:
-            
-            _modifier = ModifierService.modifier_from_template("linear_gradient")
-            ModifierService.add_modifier_to_layer(_modifier, _layer)
-            
-            AnimationService.add_keyframe(
-                _layer.get_rotation(), Keyframe(100, Number(0), KeyframeType.LINEAR))
-            AnimationService.add_keyframe(
-                _layer.get_rotation(), Keyframe(500, Number(3.14159*2), KeyframeType.LINEAR))
-            
-            AnimationService.add_keyframe(
-                _layer.get_position(), Keyframe(100, Vector2(.5, .25), KeyframeType.BEZIER,
-                                                (0.333, Vector2(.1375, 0)), (0.333, Vector2(.1375, 0))))
-            AnimationService.add_keyframe(
-                _layer.get_position(), Keyframe(200, Vector2(.75, .5), KeyframeType.BEZIER,
-                                                (0.333, Vector2(0, .1375)), (0.333, Vector2(0, .1375))))
-            AnimationService.add_keyframe(
-                _layer.get_position(), Keyframe(300, Vector2(.5, .75), KeyframeType.BEZIER,
-                                                (0.333, Vector2(-.1375, 0)), (0.333, Vector2(-.1375, 0))))
-            AnimationService.add_keyframe(
-                _layer.get_position(), Keyframe(400, Vector2(.25, .5), KeyframeType.BEZIER,
-                                                (0.333, Vector2(0, -.1375)), (0.333, Vector2(0, -.1375))))
-            AnimationService.add_keyframe(
-                _layer.get_position(), Keyframe(500, Vector2(.5, .25), KeyframeType.BEZIER,
-                                                (0.333, Vector2(.1375, 0)), (0.333, Vector2(.1375, 0))))
-
             LayerService.add_layer_to_sequence(_layer, _seq)
             cls.update_sequence_signal.emit(cls._focused_sequence)
     
