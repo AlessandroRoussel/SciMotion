@@ -26,7 +26,6 @@ class LayerRect(QGraphicsRectItem):
         self._selected = False
         self.setPen(Qt.NoPen)
         self.deselect()
-        self.setFlags(QGraphicsRectItem.ItemIsMovable)
         self.setAcceptDrops(True)
     
     def set_rect(self, x: float, y: float, w: float, h: float):

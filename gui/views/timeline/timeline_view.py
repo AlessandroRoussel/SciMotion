@@ -6,12 +6,11 @@ the user with a visual timeline within a TimelineTab.
 """
 
 import numpy as np
-from PySide6.QtCore import Qt, QRectF, QLineF, QPointF
+from PySide6.QtCore import Qt, QRectF, QLineF, QPointF, QPoint, QTimer
 from PySide6.QtGui import (QBrush, QColor, QResizeEvent, QMouseEvent,
                            QWheelEvent, QPainter, QPen, QPolygonF,
                            QKeyEvent, QFontMetrics)
-from PySide6.QtWidgets import (QGraphicsView, QGraphicsScene, QWidget,
-                               QGraphicsSceneDragDropEvent)
+from PySide6.QtWidgets import (QGraphicsView, QGraphicsScene, QWidget)
 
 from utils.config import Config
 from utils.notification import Notification
@@ -32,6 +31,9 @@ class TimelineView(QGraphicsView):
     _middle_mouse_pressed: bool
     _dragging_cursor: bool
     _prev_mouse_pos: QPointF
+    _h_scroll_timer: QTimer
+    _h_scroll_direction: int
+    _h_scroll_position: QPointF
 
     _x_offset: float
     _y_offset: float
@@ -54,6 +56,7 @@ class TimelineView(QGraphicsView):
         self._selected_layer_rects = set()
         self._dragging_cursor = False
         self._middle_mouse_pressed = False
+        self._h_scroll_timer = QTimer()
         self._x_offset = 0
         self._y_offset = 0
         self._x_zoom = 1
@@ -78,6 +81,8 @@ class TimelineView(QGraphicsView):
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         self.setOptimizationFlags(QGraphicsView.DontSavePainterState)
         self.setFocusPolicy(Qt.WheelFocus)
+
+        self._h_scroll_timer.timeout.connect(self.overshoot_scroll)
     
     def update_layers(self):
         """Update the display of the layers."""
@@ -241,6 +246,24 @@ class TimelineView(QGraphicsView):
             else:
                 _frame = np.round(self.mapToScene(_mouse_pos.toPoint()).x())
                 SequenceGUIService.set_current_frame(_frame)
+                _left_frame = self.mapToScene(QPoint(0, 0)).x()
+                _right_frame = self.mapToScene(
+                    QPoint(self.viewport().width(), 0)).x()
+                if _frame < _left_frame:
+                    self._h_scroll_direction = -1
+                    self._h_scroll_position = event.position()
+                    if not self._h_scroll_timer.isActive():
+                        self._h_scroll_timer.start(
+                            Config.timeline.overshoot_drag_interval)
+                elif _frame > _right_frame:
+                    self._h_scroll_direction = 1
+                    self._h_scroll_position = event.position()
+                    if not self._h_scroll_timer.isActive():
+                        self._h_scroll_timer.start(
+                            Config.timeline.overshoot_drag_interval)
+                else:
+                    self._h_scroll_direction = 0
+                    self._h_scroll_timer.stop()
         
         if event.buttons() == Qt.NoButton:
             _mouse_pos = event.position()
@@ -258,6 +281,21 @@ class TimelineView(QGraphicsView):
         
         super().mouseMoveEvent(event)
 
+    def overshoot_scroll(self):
+        """Scroll the view if the cursor overshoots the view."""
+        if self._dragging_cursor:
+            _mouse_pos = self._h_scroll_position
+            _frame = np.round(self.mapToScene(_mouse_pos.toPoint()).x())
+            SequenceGUIService.set_current_frame(_frame)
+            _drag_speed = Config.timeline.overshoot_drag_speed
+            _interval = Config.timeline.overshoot_drag_interval
+            if self._h_scroll_direction < 0:
+                _distance = abs(_mouse_pos.x())
+            else:
+                _distance = abs(_mouse_pos.x()-self.viewport().width())
+            _drag_speed *= _distance*_interval/1000
+            self.x_offset_signal.emit(
+                self._x_offset + _drag_speed*self._h_scroll_direction)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Handle the mouse release event."""
@@ -267,6 +305,8 @@ class TimelineView(QGraphicsView):
             return
         if (self._dragging_cursor and event.button() == Qt.LeftButton):
             self._dragging_cursor = False
+            self._h_scroll_direction = 0
+            self._h_scroll_timer.stop()
             self.setCursor(Qt.ArrowCursor)
             return
         super().mouseReleaseEvent(event)

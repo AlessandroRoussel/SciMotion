@@ -59,6 +59,8 @@ class Config():
         cls.store(config, "timeline", "vertical_stripes", bool)
         cls.store(config, "timeline", "horizontal_stripes", bool)
         cls.store(config, "timeline", "horizontal_padding", int)
+        cls.store(config, "timeline", "overshoot_drag_speed", int)
+        cls.store(config, "timeline", "overshoot_drag_interval", int)
 
         cls.store(config, "solid_layer", "default_title", str)
 
