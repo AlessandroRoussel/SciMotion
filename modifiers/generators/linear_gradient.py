@@ -44,7 +44,7 @@ def _apply(_render_context, color_a, color_b, point_a, point_b):
     glsl_code = """
     #version 430
 
-    layout (local_size_x = 1, local_size_y = 1) in;
+    layout (local_size_x = 16, local_size_y = 16) in;
     layout (rgba32f, binding = 0) uniform writeonly image2D img_output;
 
     uniform vec4 color_a;
@@ -55,8 +55,9 @@ def _apply(_render_context, color_a, color_b, point_a, point_b):
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
         vec2 dimensions = vec2(imageSize(img_output).xy);
-
+        if(any(greaterThan(coords, dimensions))){return;}
         vec2 uv = vec2(coords) / dimensions;
+        
         vec2 axis = (point_b - point_a) * dimensions;
         vec2 vector = (uv - point_a) * dimensions;
 
@@ -82,4 +83,4 @@ def _apply(_render_context, color_a, color_b, point_a, point_b):
     compute_shader["point_b"] = point_b
 
     _render_context.get_dest_texture().bind_to_image(0, read=False, write=True)
-    compute_shader.run(width, height, 1)
+    compute_shader.run(width//16+1, height//16+1, 1)

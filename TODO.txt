@@ -1,4 +1,5 @@
 TODO:
+  larger group size to accelerate GPU shaders
   separate thread for rendering
   function in RenderContext to create a shader only if it was not created before, to avoid rebuilding shaders within modifiers. Could be a dict(modifier_name_id+"."+shader_name_id -> shader_program) stored in GLContext. Function name: RenderContext.compute_shader_once.
 

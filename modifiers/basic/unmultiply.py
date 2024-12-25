@@ -19,12 +19,14 @@ def _apply(_render_context):
     glsl_code = """
     #version 430
 
-    layout (local_size_x = 1, local_size_y = 1) in;
+    layout (local_size_x = 16, local_size_y = 16) in;
     layout (rgba32f, binding = 0) uniform readonly image2D img_input;
     layout (rgba32f, binding = 1) uniform writeonly image2D img_output;
 
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+        ivec2 dimensions = imageSize(img_output).xy;
+        if(any(greaterThan(coords, dimensions))){return;}
 
         vec4 src_color = imageLoad(img_input, coords);
         float max_rgb = max(src_color.r, max(src_color.g, src_color.b));
@@ -40,4 +42,4 @@ def _apply(_render_context):
     compute_shader = gl_context.compute_shader(glsl_code)
     _render_context.get_src_texture().bind_to_image(0, read=True, write=False)
     _render_context.get_dest_texture().bind_to_image(1, read=False, write=True)
-    compute_shader.run(width, height, 1)
+    compute_shader.run(width//16+1, height//16+1, 1)
