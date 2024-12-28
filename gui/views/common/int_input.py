@@ -16,6 +16,7 @@ class IntInput(QLineEdit):
         super().__init__(parent)
         _text = str(value) if value is not None else ""
         self.setText(_text)
+        self.setStyleSheet("padding: 4px 8px;")
         _validator = QIntValidator(min, max, self)
         _locale = QLocale(QLocale.English, QLocale.UnitedStates)
         _validator.setLocale(_locale)

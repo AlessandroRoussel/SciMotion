@@ -157,7 +157,7 @@ def _apply(_render_context):
         vec3 cubeVec = vec3(-dir4D.y,dir4D.a,-dir4D.z);
         vec4 color = vec4(0);
         if(hitDisc){
-            ivec2 discXY = ivec2(discUV*100.);
+            ivec2 discXY = ivec2(discUV*vec2(imageSize(img_input)));
             color = imageLoad(img_input, discXY)*pow(blueshift,3.);
         }
         imageStore(img_output, ivec2(coords), color);

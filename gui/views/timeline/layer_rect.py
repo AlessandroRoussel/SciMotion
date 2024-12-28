@@ -32,6 +32,10 @@ class LayerRect(QGraphicsRectItem):
         """Set the layer's rectangular area."""
         self.setRect(x, y, w, h)
 
+    def get_layer(self) -> Layer:
+        """Get represented layer."""
+        return self._layer
+
     def get_frame_bounds(self) -> tuple[int, int]:
         """Return the start and end frame of the corresponding Layer."""
         return self._layer.get_start_frame(), self._layer.get_end_frame()

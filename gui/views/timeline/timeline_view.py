@@ -19,6 +19,7 @@ from gui.views.timeline.layer_rect import LayerRect
 from gui.services.sequence_gui_service import SequenceGUIService
 from core.services.project_service import ProjectService
 from utils.time import Time
+from gui.services.layer_gui_service import LayerGUIService
 
 
 class TimelineView(QGraphicsView):
@@ -89,6 +90,7 @@ class TimelineView(QGraphicsView):
         # TODO : not destroy all layers and rebuild
         self._layer_rect_list = []
         self._selected_layer_rects = set()
+        LayerGUIService.focus_layer(None)
         self.scene().clear()
         _index = 0
         self._stack_height = 0
@@ -188,12 +190,14 @@ class TimelineView(QGraphicsView):
         """Handle the mouse press event."""
 
         if event.button() == Qt.MiddleButton:
+            # Middle button click:
             self._middle_mouse_pressed = True
             self._prev_mouse_pos = event.position()
             self.setCursor(Qt.ClosedHandCursor)
             return
         
         if (event.button() == Qt.LeftButton
+            # Left button click on ruler:
             and event.position().y() < Config.timeline.ruler_height):
             self._dragging_cursor = True
             _mouse_pos = event.position()
@@ -204,17 +208,40 @@ class TimelineView(QGraphicsView):
             return
         
         if event.button() == Qt.LeftButton:
+            # Left button click on timeline:
             _item = self.itemAt(event.pos())
+
             if event.modifiers() != Qt.ControlModifier:
+                # Left click without modifier key:
                 if len(self._selected_layer_rects) > 0:
-                    for _selected_rect in self._selected_layer_rects:
-                        _selected_rect.deselect()
-                    self._selected_layer_rects = set()
+                    if(_item is None
+                       or not isinstance(_item, LayerRect)
+                       or _item not in self._selected_layer_rects):
+                        # Unselect all selected layers:
+                        for _selected_rect in self._selected_layer_rects:
+                            _selected_rect.deselect()
+                        self._selected_layer_rects = set()
+                        LayerGUIService.focus_layer(None)
+            
             if _item is None or not isinstance(_item, LayerRect):
+                # Clicked nothing:
                 self.update()
                 return
-            self._selected_layer_rects.add(_item)
-            _item.select()
+            
+            if(event.modifiers() == Qt.ControlModifier
+               and _item in self._selected_layer_rects):
+                # Ctrl+Left click on a selected LayerRect:
+                self._selected_layer_rects.remove(_item)
+                _item.deselect()
+                if _item.get_layer() is LayerGUIService.get_focused_layer():
+                    LayerGUIService.focus_layer(None)
+            else:
+                # Ctrl+Left click on an unselected LayerRect
+                # or Left click on a LayerRect (selected or not):
+                if len(self._selected_layer_rects) == 0:
+                    LayerGUIService.focus_layer(_item.get_layer())
+                self._selected_layer_rects.add(_item)
+                _item.select()
             self.update()
         
         super().mousePressEvent(event)

@@ -14,6 +14,7 @@ class TextInput(QLineEdit):
                  not_empty: bool = False):
         super().__init__(parent)
         self.setText(text)
+        self.setStyleSheet("padding: 4px 8px;")
         self._not_empty = not_empty
     
     def is_valid(self) -> bool:

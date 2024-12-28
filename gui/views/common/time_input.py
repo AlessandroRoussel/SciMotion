@@ -25,6 +25,7 @@ class TimeInput(QLineEdit):
         self._max = max
         _text = self._text_from_value(value) if value is not None else ""
         self.setText(_text)
+        self.setStyleSheet("padding: 4px 8px;")
         _regex = r"(-|\+)?(([0-9]+:)?[0-9]+:)?[0-9]+(\.[0-9]+)?"
         self.setValidator(QRegularExpressionValidator(_regex))
     
