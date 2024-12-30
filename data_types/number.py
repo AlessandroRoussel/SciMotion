@@ -17,3 +17,7 @@ class Number(NDArray):
 
     def __init__(self, value: float):
         super().__init__(value, dtype=np.float32, shape=1)
+
+
+Number.Infinity = Number(float("inf"))
+Number.negInfinity = Number(float("-inf"))

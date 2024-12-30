@@ -26,7 +26,9 @@ class ModifierBrowser(QTreeView):
         self.setModel(self._model)
         self.setDragDropMode(QTreeView.DragOnly)
         self.setSelectionMode(QTreeView.SingleSelection)
+        self.setVerticalScrollMode(QTreeView.ScrollPerPixel)
         self.setSelectionBehavior(QTreeView.SelectRows)
+        self.setFrameStyle(QTreeView.NoFrame)
 
     def startDrag(self, supportedActions: Qt.DropAction):
         """Drag with mime data containing the modifier's name id."""

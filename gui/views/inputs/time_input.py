@@ -1,19 +1,24 @@
+"""An input for entering a Time."""
+
 from typing import Union
 
-from PySide6.QtWidgets import QApplication, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLineEdit, QWidget
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtCore import Qt, QPoint
 
 from data_types.integer import Integer
 from utils.notification import Notification
+from utils.time import Time
+from utils.config import Config
 
 
-class IntegerInput(QLineEdit):
-    """An input for entering an Integer."""
+class TimeInput(QLineEdit):
+    """An input for entering a Time."""
 
     _value: float
     _min: int
     _max: int
+    _frame_rate: float
 
     _last_mouse_pos: QPoint
     _start_value: int
@@ -23,10 +28,11 @@ class IntegerInput(QLineEdit):
 
     def __init__(self,
                  parent: QWidget = None,
-                 value: Union[Integer, float] = None,
-                 min: Union[Integer, float] = Integer.Minimum,
-                 max: Union[Integer, float] = Integer.Maximum,
-                 step: float = .1):
+                 value: Union[Integer, int] = None,
+                 frame_rate: float = 60,
+                 min: Union[Integer, int] = Integer.Minimum,
+                 max: Union[Integer, int] = Integer.Maximum,
+                 step: float = 1):
         super().__init__(parent)
         if value is not None and not isinstance(value, Integer):
             value = Integer(value)
@@ -38,6 +44,7 @@ class IntegerInput(QLineEdit):
         self._last_mouse_pos = None
         self._min = min.get_value()
         self._max = max.get_value()
+        self._frame_rate = frame_rate
         self._step = step
         self._value = None
 
@@ -49,12 +56,10 @@ class IntegerInput(QLineEdit):
         _rgb = (f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
         self.setStyleSheet(f"""
             QLineEdit {{
-                padding: 2px;
+                padding: {Config.input.padding};
                 border-radius: 0;
-                border: none;
                 background-color: transparent;
                 border: 1px solid transparent;
-                border-radius: 0;
                 color: {_rgb};
             }}
             QLineEdit:hover {{
@@ -78,12 +83,18 @@ class IntegerInput(QLineEdit):
         self._value = min(max(value, self._min), self._max)
         if(_prev_value is None
            or int(round(_prev_value)) != int(round(self._value))):
-            self.value_changed.emit()
-            self._update_text()
+            self.value_changed.emit(self.get_value())
+        self._update_text()
     
     def _update_text(self):
         """Update the text to match the value."""
-        self.setText(f"{int(round(self._value))}")
+        self.setText(Time.format_time(self._value, self._frame_rate))
+    
+    def change_frame_rate(self, frame_rate: float):
+        """Change the input's local frame rate."""
+        _new_val = self._value / self._frame_rate * frame_rate
+        self._frame_rate = frame_rate
+        self._set_value(_new_val)
 
     def mousePressEvent(self, event: QMouseEvent):
         """Handle mouse press event."""
@@ -100,8 +111,12 @@ class IntegerInput(QLineEdit):
         """Handle mouse move event."""
         if self._last_mouse_pos is not None:
             _delta = event.globalPosition().toPoint() - self._last_mouse_pos
-            _slowing = 10 if event.modifiers() & Qt.ControlModifier else 1
-            self._set_value(self._value + _delta.x() * self._step / _slowing)
+            _speed = 1
+            if event.modifiers() & Qt.ControlModifier:
+                _speed = .1
+            elif event.modifiers() & Qt.ShiftModifier:
+                _speed = 10
+            self._set_value(self._value + _delta.x() * self._step * _speed)
             self._last_mouse_pos = event.globalPosition().toPoint()
             self.clearFocus()
         else:
@@ -113,9 +128,9 @@ class IntegerInput(QLineEdit):
             if not self.hasFocus():
                 self._last_mouse_pos = None
                 if self._start_value == self._value:
-                    self.selectAll()
                     self.setFocus()
                     self.setCursor(Qt.IBeamCursor)
+                    self.selectAll()
             else:
                 super().mouseReleaseEvent(event)
     
@@ -123,15 +138,16 @@ class IntegerInput(QLineEdit):
         """Handle key press event."""
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             self.clearFocus()
-        else:
-            super().keyPressEvent(event)
+        super().keyPressEvent(event)
     
     def focusOutEvent(self, event):
         """Handle focus out event."""
         self.setCursor(Qt.SizeHorCursor)
-        try:
-            self._set_value(float(self.text()))
-        except ValueError:
+        _text = self.text()
+        if Time.is_duration(_text):
+            _value = Time.duration_from_str(_text, self._frame_rate)
+            self._set_value(_value)
+        else:
             self._update_text()
         super().focusOutEvent(event)
     
@@ -141,29 +157,6 @@ class IntegerInput(QLineEdit):
         text_width = font_metrics.horizontalAdvance(self.text())
         self.setFixedWidth(text_width + 12)
     
-    def get_value(self) -> Integer:
-        """Return the value."""
-        return Integer(int(round(self._value)))
-    
-    def get_int_value(self) -> int:
+    def get_value(self) -> int:
         """Return the value."""
         return int(round(self._value))
-
-
-
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        _layout = QVBoxLayout(self)
-        self._input = IntegerInput(self, 0, step=.1)
-        self._input2 = IntegerInput(self, 10, min=4, max=15, step=.01)
-        _layout.addWidget(self._input)
-        _layout.addWidget(self._input2)
-        self.setLayout(_layout)
-
-
-if __name__ == "__main__":
-    _app = QApplication([])
-    _window = MainWindow()
-    _window.show()
-    _app.exec()

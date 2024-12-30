@@ -19,7 +19,6 @@ from gui.views.timeline.layer_rect import LayerRect
 from gui.services.sequence_gui_service import SequenceGUIService
 from core.services.project_service import ProjectService
 from utils.time import Time
-from gui.services.layer_gui_service import LayerGUIService
 
 
 class TimelineView(QGraphicsView):
@@ -28,7 +27,6 @@ class TimelineView(QGraphicsView):
     _sequence_id: int
     _sequence: Sequence
     _layer_rect_list: list[LayerRect]
-    _selected_layer_rects: set[LayerRect]
     _middle_mouse_pressed: bool
     _dragging_cursor: bool
     _prev_mouse_pos: QPointF
@@ -54,7 +52,6 @@ class TimelineView(QGraphicsView):
         self._sequence_id = sequence_id
         self._sequence = ProjectService.get_sequence_by_id(sequence_id)
         self._layer_rect_list = []
-        self._selected_layer_rects = set()
         self._dragging_cursor = False
         self._middle_mouse_pressed = False
         self._h_scroll_timer = QTimer()
@@ -84,21 +81,28 @@ class TimelineView(QGraphicsView):
         self.setFocusPolicy(Qt.WheelFocus)
 
         self._h_scroll_timer.timeout.connect(self.overshoot_scroll)
+        SequenceGUIService.update_selected_layers_signal.connect(
+            self.update_layer_selection)
     
+    def update_layer_selection(self, sequence_id: int):
+        """Update which layers are selected."""
+        if sequence_id != self._sequence_id:
+            return
+        for _layer_rect in self._layer_rect_list:
+            _layer_rect.update_selection_status()
+
     def update_layers(self):
         """Update the display of the layers."""
         # TODO : not destroy all layers and rebuild
         self._layer_rect_list = []
-        self._selected_layer_rects = set()
-        LayerGUIService.focus_layer(None)
         self.scene().clear()
         _index = 0
         self._stack_height = 0
         _spacing = Config.timeline.layer_spacing
         _layer_height = Config.timeline.layer_height
         _layer_list = self._sequence.get_layer_list()
-        for _layer in _layer_list:
-            _layer_rect = LayerRect(_layer, self._sequence_id)
+        for _layer_id in range(len(_layer_list)):
+            _layer_rect = LayerRect(_layer_id, self._sequence_id)
             self._layer_rect_list.append(_layer_rect)
             self.scene().addItem(_layer_rect)
             _start_frame, _end_frame = _layer_rect.get_frame_bounds()
@@ -110,10 +114,6 @@ class TimelineView(QGraphicsView):
         self._stack_height = max(0, self._stack_height - _spacing)
         self.update_scene_rect()
         self.stack_height_signal.emit(self._stack_height)
-
-    def select_layer(self, layer_rect: LayerRect):
-        """Handle selecting a layer."""
-        print(layer_rect)
 
     def update_scene_rect(self):
         """Update the scene area to match the duration and layer stack."""
@@ -210,38 +210,35 @@ class TimelineView(QGraphicsView):
         if event.button() == Qt.LeftButton:
             # Left button click on timeline:
             _item = self.itemAt(event.pos())
+            _selected_layers = SequenceGUIService.get_selected_layers(
+                self._sequence_id)
 
             if event.modifiers() != Qt.ControlModifier:
                 # Left click without modifier key:
-                if len(self._selected_layer_rects) > 0:
+                if len(_selected_layers) > 0:
                     if(_item is None
                        or not isinstance(_item, LayerRect)
-                       or _item not in self._selected_layer_rects):
+                       or not SequenceGUIService.is_layer_selected(
+                           self._sequence_id, _item.get_layer_id())):
                         # Unselect all selected layers:
-                        for _selected_rect in self._selected_layer_rects:
-                            _selected_rect.deselect()
-                        self._selected_layer_rects = set()
-                        LayerGUIService.focus_layer(None)
+                        SequenceGUIService.clear_selected_layers(
+                            self._sequence_id)
             
             if _item is None or not isinstance(_item, LayerRect):
                 # Clicked nothing:
                 self.update()
                 return
             
+            _layer_id = _item.get_layer_id()
             if(event.modifiers() == Qt.ControlModifier
-               and _item in self._selected_layer_rects):
+               and SequenceGUIService.is_layer_selected(
+                    self._sequence_id, _layer_id)):
                 # Ctrl+Left click on a selected LayerRect:
-                self._selected_layer_rects.remove(_item)
-                _item.deselect()
-                if _item.get_layer() is LayerGUIService.get_focused_layer():
-                    LayerGUIService.focus_layer(None)
+                SequenceGUIService.unselect_layer(self._sequence_id, _layer_id)
             else:
                 # Ctrl+Left click on an unselected LayerRect
                 # or Left click on a LayerRect (selected or not):
-                if len(self._selected_layer_rects) == 0:
-                    LayerGUIService.focus_layer(_item.get_layer())
-                self._selected_layer_rects.add(_item)
-                _item.select()
+                SequenceGUIService.select_layer(self._sequence_id, _layer_id)
             self.update()
         
         super().mousePressEvent(event)

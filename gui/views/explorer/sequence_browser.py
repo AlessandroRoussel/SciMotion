@@ -33,6 +33,8 @@ class SequenceBrowser(QTreeView):
         self.header().setCascadingSectionResizes(True)
         self.setModel(self._model)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollMode(QTreeView.ScrollPerPixel)
+        self.setFrameStyle(QTreeView.NoFrame)
         self.setSortingEnabled(True)
         SequenceGUIService.create_sequence_signal.connect(self.create_sequence)
         SequenceGUIService.update_sequence_signal.connect(self.update_sequence)

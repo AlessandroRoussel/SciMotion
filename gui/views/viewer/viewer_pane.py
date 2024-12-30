@@ -24,6 +24,7 @@ class ViewerPane(QTabWidget):
         super().__init__(parent)
         self._tabs = []
         self.setTabsClosable(True)
+
         SequenceGUIService.open_sequence_signal.connect(self.open_sequence)
         SequenceGUIService.close_sequence_signal.connect(self.close_sequence)
         SequenceGUIService.update_sequence_signal.connect(self.update_sequence)

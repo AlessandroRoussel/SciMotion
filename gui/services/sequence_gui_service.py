@@ -7,16 +7,10 @@ from gui.views.dialogs.sequence_dialog import SequenceDialog
 from gui.views.dialogs.solid_layer_dialog import SolidLayerDialog
 from core.services.project_service import ProjectService
 from core.services.render_service import RenderService
-from core.services.animation_service import AnimationService
-from core.services.modifier_service import ModifierService
 from core.entities.solid_layer import SolidLayer
-from core.entities.keyframe import Keyframe, KeyframeType
 from core.entities.sequence import Sequence
 from utils.notification import Notification
-from data_types.number import Number
-from data_types.vector2 import Vector2
-from data_types.color import Color
-from utils.image import Image
+from core.entities.layer import Layer
 
 
 class SequenceGUIService:
@@ -29,8 +23,10 @@ class SequenceGUIService:
     focus_sequence_signal = Notification()
     offset_current_frame_signal = Notification()
     set_current_frame_signal = Notification()
+    update_selected_layers_signal = Notification()
 
     _focused_sequence: int = None
+    _selected_layers: dict[int, list[int]] = dict()
 
     @classmethod
     def create_new_sequence(cls):
@@ -100,6 +96,20 @@ class SequenceGUIService:
             cls.set_current_frame_signal.emit(cls._focused_sequence, _frame)
     
     @classmethod
+    def get_focused_sequence_id(cls) -> int:
+        """Return the focused sequence index."""
+        if cls._focused_sequence is None:
+            return None
+        return cls._focused_sequence
+
+    @classmethod
+    def get_focused_sequence(cls) -> Sequence:
+        """Return the focused sequence."""
+        if cls._focused_sequence is None:
+            return None
+        return ProjectService.get_sequence_by_id(cls._focused_sequence)
+
+    @classmethod
     def create_new_solid_layer(cls):
         """Create a new solid layer."""
         if cls._focused_sequence is None:
@@ -107,17 +117,60 @@ class SequenceGUIService:
         _dialog = SolidLayerDialog(cls.get_focused_sequence())
         if _dialog.exec():
             (_title, _width, _height, _color) = _dialog.get_values()
-            _seq = ProjectService.get_sequence_by_id(cls._focused_sequence)
+            _seq = cls.get_focused_sequence()
             _start_frame = 0
             _end_frame = _seq.get_duration()
             _layer = SolidLayer(_title, _start_frame, _end_frame,
                                 _width, _height, _color)
-            LayerService.add_layer_to_sequence(_layer, _seq)
+            _layer_id = LayerService.add_layer_to_sequence(_layer, _seq)
+            cls.clear_selected_layers(cls._focused_sequence)
+            cls.select_layer(cls._focused_sequence, _layer_id)
+            # TODO: change this to a CreateLayer signal:
             cls.update_sequence_signal.emit(cls._focused_sequence)
+
+    @classmethod
+    def select_layer(cls, sequence_id: int, layer_id: int):
+        """Add a layer to the selection within a sequence."""
+        if sequence_id not in cls._selected_layers:
+            cls._selected_layers[sequence_id] = [layer_id]
+        elif layer_id in cls._selected_layers[sequence_id]:
+            return
+        cls._selected_layers[sequence_id].append(layer_id)
+        cls.update_selected_layers_signal.emit(sequence_id)
     
     @classmethod
-    def get_focused_sequence(cls) -> Sequence:
-        """Return the focused sequence."""
-        if cls._focused_sequence is None:
+    def unselect_layer(cls, sequence_id: int, layer_id: int):
+        """Unselect a layer within a sequence."""
+        if(sequence_id not in cls._selected_layers
+           or layer_id not in cls._selected_layers[sequence_id]):
+            return
+        cls._selected_layers[sequence_id].remove(layer_id)
+        cls.update_selected_layers_signal.emit(sequence_id)
+    
+    @classmethod
+    def clear_selected_layers(cls, sequence_id: int):
+        """Deselect all selected layers within a sequence."""
+        cls._selected_layers[sequence_id] = []
+        cls.update_selected_layers_signal.emit(sequence_id)
+    
+    @classmethod
+    def get_focused_layer(cls, sequence_id: int) -> int:
+        """Return the index of the first selected layer of a sequence."""
+        if(sequence_id not in cls._selected_layers
+           or cls._selected_layers[sequence_id] == []):
             return None
-        return ProjectService.get_sequence_by_id(cls._focused_sequence)
+        return cls._selected_layers[sequence_id][0]
+
+    @classmethod
+    def get_selected_layers(cls, sequence_id: int) -> list[int]:
+        """Return the indices of all selected layers in a sequence."""
+        if(sequence_id not in cls._selected_layers):
+            cls._selected_layers[sequence_id] = []
+        return cls._selected_layers[sequence_id]
+
+    @classmethod
+    def is_layer_selected(cls, sequence_id: int, layer_id: int) -> bool:
+        """Return the selected state of a layer within a sequence."""
+        if(sequence_id not in cls._selected_layers):
+            return False
+        return layer_id in cls._selected_layers[sequence_id]

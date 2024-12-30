@@ -14,10 +14,11 @@ class LayerService:
     """Service concerning layers in general."""
 
     @staticmethod
-    def add_layer_to_sequence(layer: Layer, sequence: Sequence):
-        """Add a Layer to a Sequence."""
+    def add_layer_to_sequence(layer: Layer, sequence: Sequence) -> int:
+        """Add a Layer to a Sequence, and return its id."""
         _layer_list = sequence.get_layer_list()
         _layer_list.append(layer)
+        return len(_layer_list)-1
 
     @staticmethod
     def adapt_layer_to_frame_rate(layer: Layer,

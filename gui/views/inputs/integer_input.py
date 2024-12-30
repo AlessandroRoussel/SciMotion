@@ -1,11 +1,14 @@
+"""An input for entering an Integer."""
+
 from typing import Union
 
-from PySide6.QtWidgets import QApplication, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLineEdit, QWidget
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtCore import Qt, QPoint
 
 from data_types.integer import Integer
 from utils.notification import Notification
+from utils.config import Config
 
 
 class IntegerInput(QLineEdit):
@@ -23,10 +26,10 @@ class IntegerInput(QLineEdit):
 
     def __init__(self,
                  parent: QWidget = None,
-                 value: Union[Integer, float] = None,
-                 min: Union[Integer, float] = Integer.Minimum,
-                 max: Union[Integer, float] = Integer.Maximum,
-                 step: float = .1):
+                 value: Union[Integer, int] = None,
+                 min: Union[Integer, int] = Integer.Minimum,
+                 max: Union[Integer, int] = Integer.Maximum,
+                 step: float = 1):
         super().__init__(parent)
         if value is not None and not isinstance(value, Integer):
             value = Integer(value)
@@ -49,12 +52,10 @@ class IntegerInput(QLineEdit):
         _rgb = (f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
         self.setStyleSheet(f"""
             QLineEdit {{
-                padding: 2px;
+                padding: {Config.input.padding};
                 border-radius: 0;
-                border: none;
                 background-color: transparent;
                 border: 1px solid transparent;
-                border-radius: 0;
                 color: {_rgb};
             }}
             QLineEdit:hover {{
@@ -78,8 +79,8 @@ class IntegerInput(QLineEdit):
         self._value = min(max(value, self._min), self._max)
         if(_prev_value is None
            or int(round(_prev_value)) != int(round(self._value))):
-            self.value_changed.emit()
-            self._update_text()
+            self.value_changed.emit(self.get_value())
+        self._update_text()
     
     def _update_text(self):
         """Update the text to match the value."""
@@ -100,8 +101,12 @@ class IntegerInput(QLineEdit):
         """Handle mouse move event."""
         if self._last_mouse_pos is not None:
             _delta = event.globalPosition().toPoint() - self._last_mouse_pos
-            _slowing = 10 if event.modifiers() & Qt.ControlModifier else 1
-            self._set_value(self._value + _delta.x() * self._step / _slowing)
+            _speed = 1
+            if event.modifiers() & Qt.ControlModifier:
+                _speed = .1
+            elif event.modifiers() & Qt.ShiftModifier:
+                _speed = 10
+            self._set_value(self._value + _delta.x() * self._step * _speed)
             self._last_mouse_pos = event.globalPosition().toPoint()
             self.clearFocus()
         else:
@@ -113,9 +118,9 @@ class IntegerInput(QLineEdit):
             if not self.hasFocus():
                 self._last_mouse_pos = None
                 if self._start_value == self._value:
-                    self.selectAll()
                     self.setFocus()
                     self.setCursor(Qt.IBeamCursor)
+                    self.selectAll()
             else:
                 super().mouseReleaseEvent(event)
     
@@ -123,8 +128,7 @@ class IntegerInput(QLineEdit):
         """Handle key press event."""
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             self.clearFocus()
-        else:
-            super().keyPressEvent(event)
+        super().keyPressEvent(event)
     
     def focusOutEvent(self, event):
         """Handle focus out event."""
@@ -148,22 +152,3 @@ class IntegerInput(QLineEdit):
     def get_int_value(self) -> int:
         """Return the value."""
         return int(round(self._value))
-
-
-
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        _layout = QVBoxLayout(self)
-        self._input = IntegerInput(self, 0, step=.1)
-        self._input2 = IntegerInput(self, 10, min=4, max=15, step=.01)
-        _layout.addWidget(self._input)
-        _layout.addWidget(self._input2)
-        self.setLayout(_layout)
-
-
-if __name__ == "__main__":
-    _app = QApplication([])
-    _window = MainWindow()
-    _window.show()
-    _app.exec()

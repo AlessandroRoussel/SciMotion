@@ -64,6 +64,10 @@ class Config():
 
         cls.store(config, "solid_layer", "default_title", str)
 
+        cls.store(config, "modifier_editor", "margin", int)
+
+        cls.store(config, "input", "padding", str)
+
         cls.store(config, "render", "anti_aliasing_samples", int)
     
     @classmethod

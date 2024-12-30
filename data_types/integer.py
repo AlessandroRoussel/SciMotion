@@ -17,3 +17,7 @@ class Integer(NDArray):
 
     def __init__(self, value: int):
         super().__init__(value, dtype=np.int32, shape=1)
+
+
+Integer.Maximum = Integer(2**31-1)
+Integer.Minimum = Integer(-(2**31-1))

@@ -76,3 +76,7 @@ class Sequence:
     def get_layer_list(self) -> list[Layer]:
         """Return a reference to the layer list."""
         return self._layer_list
+
+    def get_layer(self, layer_id: int) -> Layer:
+        """Return a reference to a layer given its index."""
+        return self._layer_list[layer_id]

@@ -6,15 +6,16 @@ an editor for all the parameters of a modifier.
 """
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel)
+from PySide6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel,
+                               QSizePolicy, QFrame)
 
 from core.entities.modifier import Modifier
 from core.entities.modifier_repository import ModifierRepository
-from gui.views.common.color_input import ColorInput
+from gui.views.inputs.color_input import ColorInput
 from data_types.color import Color
 
 
-class ModifierEditor(QWidget):
+class ModifierEditor(QFrame):
     """A panel for editing the parameters of a modifier."""
 
     _title: str
@@ -22,6 +23,7 @@ class ModifierEditor(QWidget):
 
     def __init__(self, parent: QWidget, modifier: Modifier):
         super().__init__(parent)
+        self.setFrameShape(QFrame.StyledPanel)
         self.build_from_modifier(modifier)
     
     def build_from_modifier(self, modifier: Modifier):
@@ -34,6 +36,9 @@ class ModifierEditor(QWidget):
 
         _layout = QVBoxLayout()
         self.setLayout(_layout)
+
+        _title_widget = QLabel(self._title, self)
+        _layout.addWidget(_title_widget)
 
         _param_template_list = _template.get_parameter_template_list()
         for _param, _param_template in zip(_param_list, _param_template_list):
@@ -49,8 +54,6 @@ class ModifierEditor(QWidget):
             _param_title = _param_template.get_title()
             _layout.addLayout(self.create_input_layout(_param_title, _input))
             self._inputs[_param_template.get_name_id()] = _input
-        
-        _layout.addStretch()
     
     def get_title(self) -> str:
         """Get modifier title."""
