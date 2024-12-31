@@ -6,13 +6,19 @@ an editor for all the parameters of a modifier.
 """
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel,
+from PySide6.QtWidgets import (QWidget, QHBoxLayout, QGridLayout, QLabel,
                                QSizePolicy, QFrame)
 
 from core.entities.modifier import Modifier
+from core.entities.parameter import Parameter
 from core.entities.modifier_repository import ModifierRepository
+from gui.services.modifier_gui_service import ModifierGUIService
 from gui.views.inputs.color_input import ColorInput
+from gui.views.inputs.vector2_input import Vector2Input
+from data_types.data_type import DataType
 from data_types.color import Color
+from data_types.vector2 import Vector2
+from utils.notification import Notification
 
 
 class ModifierEditor(QFrame):
@@ -21,10 +27,13 @@ class ModifierEditor(QFrame):
     _title: str
     _inputs: dict[str, QWidget] # name_id, input
 
+    update_parameter_signal: Notification
+
     def __init__(self, parent: QWidget, modifier: Modifier):
         super().__init__(parent)
         self.setFrameShape(QFrame.StyledPanel)
         self.build_from_modifier(modifier)
+        self.update_parameter_signal = Notification()
     
     def build_from_modifier(self, modifier: Modifier):
         """Build GUI from modifier template and data."""
@@ -34,37 +43,42 @@ class ModifierEditor(QFrame):
         self._title = _template.get_title()
         self._inputs = dict()
 
-        _layout = QVBoxLayout()
+        _layout = QGridLayout(self)
+        _layout.setAlignment(Qt.AlignLeft)
         self.setLayout(_layout)
 
         _title_widget = QLabel(self._title, self)
-        _layout.addWidget(_title_widget)
+        _layout.addWidget(_title_widget, 0, 0, 1, 2)
 
         _param_template_list = _template.get_parameter_template_list()
-        for _param, _param_template in zip(_param_list, _param_template_list):
+        for _i in range(len(_param_template_list)):
+            _param = _param_list[_i]
+            _param_template = _param_template_list[_i]
             _type = _param_template.get_data_type()
 
             # TODO: change this:
             if _type is Color:
                 _input = ColorInput(self, _param.get_current_value())
-                _input.value_changed.connect(_param.set_current_value)
+            elif _type is Vector2:
+                _input = Vector2Input(self, _param.get_current_value())
             else:
                 continue
 
+            _input.value_changed.connect(self._create_update_function(_param))
             _param_title = _param_template.get_title()
-            _layout.addLayout(self.create_input_layout(_param_title, _input))
+            _layout.addWidget(QLabel(f"{_param_title}:", self), _i+1, 0)
+            _layout.addWidget(_input, _i+1, 1)
             self._inputs[_param_template.get_name_id()] = _input
     
     def get_title(self) -> str:
         """Get modifier title."""
         return self._title
+    
+    def _create_update_function(self, param: Parameter):
+        """Create the update function for a parameter."""
+        return lambda value: self._update_parameter_value(param, value)
 
-    def create_input_layout(self, label: str, widget: QWidget) -> QHBoxLayout:
-        """Create a horizontal layout with a label for an input."""
-        _layout = QHBoxLayout()
-        _label = QLabel(f"{label}:", self)
-        _label.setFixedWidth(100)
-        _label.setAlignment(Qt.AlignRight)
-        _layout.addWidget(_label)
-        _layout.addWidget(widget)
-        return _layout
+    def _update_parameter_value(self, param: Parameter, value: DataType):
+        """Update a parameter value."""
+        param.set_current_value(value)
+        self.update_parameter_signal.emit()

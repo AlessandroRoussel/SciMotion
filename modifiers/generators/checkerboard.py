@@ -35,11 +35,15 @@ _parameters = [
     }
 ]
 
+# TODO : add rotation
+
 
 def _apply(_render_context, color_a, color_b, cell_size, center):
     gl_context = _render_context.get_gl_context()
     width = _render_context.get_width()
     height = _render_context.get_height()
+
+    # TODO : make antialiased
 
     glsl_code = """
     #version 430

@@ -137,6 +137,11 @@ class ViewerTab(QFrame):
     def update_sequence(self):
         """Handle updates in the sequence."""
         self._gl_viewer.update_texture()
+    
+    def redraw_layer(self, layer_id: int):
+        """Handle redrawing a layer."""
+        # TODO : make this more efficient by redrawing only the needed layer
+        self._gl_viewer.update_texture()
 
     def keyPressEvent(self, event: QKeyEvent):
         """Handle key press events."""

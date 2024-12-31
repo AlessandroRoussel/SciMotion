@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt
 from gui.views.viewer.viewer_tab import ViewerTab
 from core.services.project_service import ProjectService
 from gui.services.sequence_gui_service import SequenceGUIService
+from gui.services.modifier_gui_service import ModifierGUIService
 
 
 class ViewerPane(QTabWidget):
@@ -28,6 +29,8 @@ class ViewerPane(QTabWidget):
         SequenceGUIService.open_sequence_signal.connect(self.open_sequence)
         SequenceGUIService.close_sequence_signal.connect(self.close_sequence)
         SequenceGUIService.update_sequence_signal.connect(self.update_sequence)
+        ModifierGUIService.update_modifiers_signal.connect(self.redraw_layer)
+        ModifierGUIService.update_parameter_signal.connect(self.redraw_layer)
         SequenceGUIService.offset_current_frame_signal.connect(
             self.offset_current_frame)
         SequenceGUIService.set_current_frame_signal.connect(
@@ -56,6 +59,14 @@ class ViewerPane(QTabWidget):
         self.setTabText(_tab_id, _sequence.get_title())
         _tab = self.widget(_tab_id)
         _tab.update_sequence()
+    
+    def redraw_layer(self, sequence_id: int, layer_id: int):
+        """Redraw a layer within a sequence."""
+        if sequence_id not in self._tabs:
+            return
+        _tab_id = self._tabs.index(sequence_id)
+        _tab = self.widget(_tab_id)
+        _tab.redraw_layer(layer_id)
     
     def offset_current_frame(self, sequence_id: int, offset: int):
         """Offset the current frame in the tab corresponding to a sequence."""

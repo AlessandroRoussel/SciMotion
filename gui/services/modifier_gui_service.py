@@ -11,6 +11,7 @@ class ModifierGUIService:
     """A set of services for modifier related GUI elements."""
 
     update_modifiers_signal = Notification()
+    update_parameter_signal = Notification()
 
     @classmethod
     def add_modifier_to_layer(cls,
@@ -24,5 +25,4 @@ class ModifierGUIService:
         ModifierService.add_modifier_to_layer(_modifier, _layer)
 
         # TODO: Change this to a more precise signal:
-        SequenceGUIService.update_sequence_signal.emit(sequence_id)
         cls.update_modifiers_signal.emit(sequence_id, layer_id)
