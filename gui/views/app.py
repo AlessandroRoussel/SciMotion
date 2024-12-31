@@ -3,6 +3,7 @@
 import sys
 
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 
 from gui.views.main_window import MainWindow
 from core.entities.gl_context import GLContext
@@ -15,6 +16,10 @@ class App(QApplication):
     def __init__(self):
         """Initialize the app."""
         super().__init__()
+        self.setAttribute(Qt.AA_EnableHighDpiScaling)
+        self.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+
         GLContext.get_context()
         _main_window = MainWindow()
         _screens = self.screens()

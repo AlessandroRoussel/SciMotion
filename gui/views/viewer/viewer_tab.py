@@ -84,7 +84,7 @@ class ViewerTab(QFrame):
 
         # Transparency checkerboard checkbox:
         _alpha_checkbox = QCheckBox("Transparency")
-        _alpha_checkbox.setCursor(QCursor(Qt.PointingHandCursor))
+        _alpha_checkbox.setCursor(Qt.PointingHandCursor)
         _alpha_checkbox.checkStateChanged.connect(self.toggle_checkerboard)
         _tool_bar.addWidget(_alpha_checkbox)
         _alpha_checkbox.setCheckState(Qt.CheckState.Checked)

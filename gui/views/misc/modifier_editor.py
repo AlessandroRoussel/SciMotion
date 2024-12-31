@@ -12,12 +12,13 @@ from PySide6.QtWidgets import (QWidget, QHBoxLayout, QGridLayout, QLabel,
 from core.entities.modifier import Modifier
 from core.entities.parameter import Parameter
 from core.entities.modifier_repository import ModifierRepository
-from gui.services.modifier_gui_service import ModifierGUIService
 from gui.views.inputs.color_input import ColorInput
 from gui.views.inputs.vector2_input import Vector2Input
+from gui.views.inputs.boolean_input import BooleanInput
 from data_types.data_type import DataType
 from data_types.color import Color
 from data_types.vector2 import Vector2
+from data_types.boolean import Boolean
 from utils.notification import Notification
 
 
@@ -61,6 +62,8 @@ class ModifierEditor(QFrame):
                 _input = ColorInput(self, _param.get_current_value())
             elif _type is Vector2:
                 _input = Vector2Input(self, _param.get_current_value())
+            elif _type is Boolean:
+                _input = BooleanInput(self, _param.get_current_value())
             else:
                 continue
 

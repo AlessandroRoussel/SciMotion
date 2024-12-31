@@ -108,7 +108,7 @@ class GLViewer(QOpenGLWidget):
 		float checkerTexture(vec2 xy){
 			float size = """+"{0:.2f}".format(
                 Config.viewer.checkerboard_size)+""";
-			vec2 q = xy/size-2.*floor(xy/2./size);
+			vec2 q = 2.*fract(xy/2./size);
 			return mix("""+"{0:.2f}".format(
                 Config.viewer.checkerboard_color_a)+""",
 			  """+"{0:.2f}".format(
@@ -120,7 +120,7 @@ class GLViewer(QOpenGLWidget):
 			vec4 color = texture(u_texture, tex_uv);
 			vec3 back_color = vec3(0.);
 			if(u_checkerboard){
-				vec2 checkerboard_coord = gl_FragCoord.xy - u_dimensions*.5;
+				vec2 checkerboard_coord = gl_FragCoord.xy+.5-u_dimensions*.5;
 				back_color = vec3(checkerTexture(checkerboard_coord));
 			}
 			vec3 blended_color = mix(back_color, color.rgb, color.a);
@@ -150,13 +150,15 @@ class GLViewer(QOpenGLWidget):
             _transform = self.transformation_matrix()
             self._program["u_transform"] = _transform
             self._program["u_checkerboard"] = self._checkerboard
-            self._program["u_dimensions"] = self.width(), self.height()
+            self._program["u_dimensions"] = (
+                self.width() * self.devicePixelRatioF(),
+                self.height() * self.devicePixelRatioF())
             self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def transformation_matrix(self) -> np.ndarray:
         """Return the transformation matrix for displaying the texture."""
-        _width = self.width()
-        _height = self.height()
+        _width = self.width() * self.devicePixelRatioF()
+        _height = self.height() * self.devicePixelRatioF()
         _tex_width = self._texture.width
         _tex_height = self._texture.height
         _scale_x = self._zoom * _tex_width / _width
@@ -188,8 +190,8 @@ class GLViewer(QOpenGLWidget):
         self._center_y = .5
         if self._texture is not None:
             _padding = Config.viewer.fit_padding
-            _width = self.width() - 2*_padding
-            _height = self.height() - 2*_padding
+            _width = self.width()*self.devicePixelRatioF()-2*_padding
+            _height = self.height()*self.devicePixelRatioF()-2*_padding
             _tex_width = self._texture.width
             _tex_height = self._texture.height
             _zoom = min(_width/_tex_width, _height/_tex_height)
@@ -214,8 +216,8 @@ class GLViewer(QOpenGLWidget):
         """Convert widget coordinates to texture coordinates."""
         _tex_width = self._texture.width
         _tex_height = self._texture.height
-        _img_x = (widget_x - self.width()/2) / self._zoom
-        _img_y = (widget_y - self.height()/2) / self._zoom
+        _img_x = (widget_x-self.width()*self.devicePixelRatioF()/2)/self._zoom
+        _img_y = (widget_y-self.height()*self.devicePixelRatioF()/2)/self._zoom
         _img_x += self._center_x*_tex_width
         _img_y += self._center_y*_tex_height
         return _img_x, _img_y
@@ -229,8 +231,8 @@ class GLViewer(QOpenGLWidget):
         _tex_height = self._texture.height
         _widget_x = (img_x - self._center_x*_tex_width) * self._zoom
         _widget_y = (img_y - self._center_y*_tex_height) * self._zoom
-        _widget_x += self.width()/2
-        _widget_y += self.height()/2
+        _widget_x += self.width()*self.devicePixelRatioF()/2
+        _widget_y += self.height()*self.devicePixelRatioF()/2
         return _widget_x, _widget_y
     
     def wheel_scroll(self, event: QWheelEvent):

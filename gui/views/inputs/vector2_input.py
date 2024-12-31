@@ -23,7 +23,7 @@ class Vector2Input(QWidget):
                  value: Vector2 = None,
                  min: Vector2 = Vector2.negInfinity,
                  max: Vector2 = Vector2.Infinity,
-                 decimals: int = 2,
+                 decimals: int = 4,
                  step: float = .001):
         super().__init__(parent)
         if value is not None and not isinstance(value, Vector2):
