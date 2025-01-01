@@ -1,9 +1,29 @@
 _name_id = "black_hole"
 _title = "Black hole"
 _flags = []
+_parameters = [
+    {
+        "name_id": "tilt",
+        "title": "Tilt",
+        "data_type": "number"
+    },
+    {
+        "name_id": "spin",
+        "title": "Spin",
+        "data_type": "number",
+        "min_value" : -1,
+        "max_value" : 1
+    },
+    {
+        "name_id": "disc_min_max",
+        "title": "Disc inner and outer radii",
+        "data_type": "vector2",
+        "default_value": [6, 15]
+    }
+]
 
 
-def _apply(_render_context):
+def _apply(_render_context, tilt, spin, disc_min_max):
     gl_context = _render_context.get_gl_context()
     width = _render_context.get_width()
     height = _render_context.get_height()
@@ -15,17 +35,14 @@ def _apply(_render_context):
     layout (rgba32f, binding = 0) uniform readonly image2D img_input;
     layout (rgba32f, binding = 1) uniform writeonly image2D img_output;
 
-    uniform float iTime;
+    uniform float tilt;
+    uniform float a;
+    uniform vec2 disc_min_max;
 
     #define PI 3.1415926538
 
     float camR = 30.;     // camera distance
-    float tilt = .1;      // camera tilt
     float zoom = 1.5;     // camera zoom
-
-    float a = .6;         // spin parameter (J/M²)
-    float discMin = 3.83; // disc inner radius (ISCO)
-    float discMax = 15.;  // disc outer radius
 
     float eps = .01;      // hamiltonian gradient step
     float dtau = .1;      // affine step
@@ -107,8 +124,6 @@ def _apply(_render_context):
         vec2 dimensions = vec2(imageSize(img_output).xy);
         if(any(greaterThan(coords, dimensions))){return;}
         vec2 uv = (2.*coords-dimensions.xy)/dimensions.x;
-        
-        tilt = sin(iTime*.5)*.5;
 
         float x = sqrt(camR*camR+a*a)*cos(tilt);
         float z = camR*sin(tilt);
@@ -137,9 +152,9 @@ def _apply(_render_context):
 
                 intersectPos = (pos*abs(lastpos.a)+lastpos*abs(pos.a))/abs(lastpos.a-pos.a);
                 float r = rFromCoords(intersectPos);
-                if(r > discMin && r < discMax){
+                if(r > disc_min_max.x && r < disc_min_max.y){
                     hitDisc = true;
-                    discUV = (intersectPos.yz/discMax+1.)*.5;
+                    discUV = (intersectPos.yz/disc_min_max.y+1.)*.5;
                     vec4 discVel = vec4(r+a/sqrt(r),vec3(-intersectPos.z,intersectPos.y,0.)*sign(a)/sqrt(r))/sqrt(r*r-3.*r+2.*a*sqrt(r));
                     blueshift = 1./dot(p,discVel);
                     break;
@@ -165,7 +180,9 @@ def _apply(_render_context):
     """
 
     compute_shader = gl_context.compute_shader(glsl_code)
-    compute_shader["iTime"] = _render_context.get_sequence_context().get_current_frame()/35
+    compute_shader["tilt"] = tilt
+    compute_shader["a"] = spin
+    compute_shader["disc_min_max"] = disc_min_max
 
     _render_context.get_src_texture().bind_to_image(0, read=True, write=False)
     _render_context.get_dest_texture().bind_to_image(1, read=False, write=True)

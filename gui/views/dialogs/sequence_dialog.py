@@ -11,6 +11,7 @@ from gui.views.inputs.text_input import TextInput
 from gui.views.inputs.integer_input import IntegerInput
 from gui.views.inputs.type_number_input import TypeNumberInput
 from gui.views.inputs.time_input import TimeInput
+from data_types.number import Number
 from gui.services.dialog_service import DialogService
 
 
@@ -81,7 +82,7 @@ class SequenceDialog(QDialog):
         _duration = self._duration_input.get_value()
         return _title, _width, _height, _frame_rate, _duration
 
-    def changed_frame_rate(self):
+    def changed_frame_rate(self, value: Number):
         """Handle changing the frame rate."""
-        _frame_rate = self._fps_input.get_float_value()
+        _frame_rate = value.get_value()
         self._duration_input.change_frame_rate(_frame_rate)

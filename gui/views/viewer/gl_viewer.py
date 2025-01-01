@@ -62,7 +62,7 @@ class GLViewer(QOpenGLWidget):
         """Toggle transparency checkerboard status."""
         self._checkerboard = state
         self.update()
-    
+
     def set_texture(self, texture: moderngl.Texture):
         """Set the displayed texture."""
         if self._texture is not None:
@@ -142,8 +142,9 @@ class GLViewer(QOpenGLWidget):
         """Paint the OpenGL context."""
         _gl_context = moderngl.create_context()
         _qt_color = self.palette().window().color()
-        _gl_context.clear(_qt_color.redF(), _qt_color.greenF(),
-                                        _qt_color.blueF(), 1)
+        _gl_context.clear(_qt_color.redF(),
+                          _qt_color.greenF(),
+                          _qt_color.blueF(), 1)
         if self._texture is not None:
             self._texture.use(location=0)
             self._program["u_texture"] = 0

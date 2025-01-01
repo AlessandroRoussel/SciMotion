@@ -33,7 +33,7 @@ class TextInput(QLineEdit):
         self.setStyleSheet(f"""
             QLineEdit {{
                 padding: {Config.input.padding};
-                border-radius: 3px;
+                border-radius: 0;
                 background-color: transparent;
                 border: 1px solid transparent;
                 color: {_rgb};
@@ -42,6 +42,7 @@ class TextInput(QLineEdit):
                 border-bottom: 1px solid {_rgb};
             }}
             QLineEdit:focus {{
+                border-radius: 3px;
                 border: 1px solid {_rgb};
             }}
             """)

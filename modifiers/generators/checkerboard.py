@@ -49,8 +49,6 @@ def _apply(_render_context, color_a, color_b, cell_size, center, antialiasing):
     width = _render_context.get_width()
     height = _render_context.get_height()
 
-    # TODO : handle cell_size.x or cell_size.y = 0 by averaging the two colors
-
     glsl_code = """
     #version 430
 
@@ -69,18 +67,18 @@ def _apply(_render_context, color_a, color_b, cell_size, center, antialiasing):
         if(any(greaterThan(coords, dimensions))){return;}
 
         vec2 xy = vec2(coords) + .5 - center * vec2(dimensions);
-        float checker;
+        float checker = .5;
 
-        if(!antialiasing){
-            vec2 q = 2.*fract(xy/2./cell_size);
-            checker = float(q.x < 1. ^^ q.y < 1.);
-        }else{
-            vec2 q = cell_size*(2.*abs(fract(xy/cell_size) - .5) - 1.);
-            ivec2 n = ivec2(floor(xy/cell_size));
-            vec2 sign = vec2((n.x % 2 == 0) ? 1. : -1.,
-                             (n.y % 2 == 0) ? 1. : -1.);
-            q = clamp(q*sign, -1., 1.);
-            checker = .5*(1. - q.x*q.y);
+        if(cell_size.x != 0. && cell_size.y != 0.){
+            if(!antialiasing){
+                vec2 q = 2.*fract(xy/2./cell_size);
+                checker = float(q.x < 1. ^^ q.y < 1.);
+            }else{
+                vec2 q1 = abs(fract((xy*.5 + .25)/cell_size) - .5);
+                vec2 q2 = abs(fract((xy*.5 - .25)/cell_size) - .5);
+                vec2 q = 2.*cell_size*(q1 - q2);
+                checker = clamp(.5*(1. - q.x*q.y), 0., 1.);
+            }
         }
 
         vec4 color = mix(color_a, color_b, checker);

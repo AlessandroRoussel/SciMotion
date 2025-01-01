@@ -1,8 +1,9 @@
 """An input for picking a color."""
 
 from PySide6.QtWidgets import QPushButton, QWidget, QApplication
-from PySide6.QtGui import QColor
-from PySide6.QtCore import Qt
+from PySide6.QtGui import (QPixmap, QPainter, QPainterPath, QRegion,
+                           QBrush, QColor)
+from PySide6.QtCore import Qt, QRectF
 
 from data_types.color import Color
 from utils.notification import Notification
@@ -13,7 +14,6 @@ class ColorInput(QPushButton):
     """An input for picking a color."""
 
     _value: Color
-    _displayed_rgba: str
     value_changed: Notification
 
     def __init__(self,
@@ -29,12 +29,6 @@ class ColorInput(QPushButton):
     def _set_value(self, value: Color):
         """Set the value stored by the input."""
         self._value = value
-        _rgba = self._value.get_value()
-        _red = min(255, max(0, int(round(_rgba[0]*255))))
-        _green = min(255, max(0, int(round(_rgba[1]*255))))
-        _blue = min(255, max(0, int(round(_rgba[2]*255))))
-        _alpha = min(1, max(0, _rgba[3]))
-        self._displayed_rgba = f"rgba({_red},{_green},{_blue},{_alpha})"
         self.value_changed.emit(self.get_value())
         self._update_display()
     
@@ -46,10 +40,11 @@ class ColorInput(QPushButton):
         """Update the displayed color of the input."""
         # TODO : display a checkerboard for transparent colors
         _color = QApplication.palette().accent().color()
-        _border_rgb = (f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
+        _border_rgb = (
+            f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
         self.setStyleSheet(
             f"""QPushButton, QPushButton:pressed, QPushButton:hover {{
-                background-color: {self._displayed_rgba};
+                background-color: transparent;
                 border: 1px solid transparent;
                 border-radius: 3px;
             }}
@@ -57,6 +52,7 @@ class ColorInput(QPushButton):
             QPushButton:pressed, QPushButton:hover {{
                 border: 1px solid {_border_rgb};
             }}""")
+        self.update()
 
     def open_dialog(self):
         """Open the color picker."""
@@ -64,3 +60,31 @@ class ColorInput(QPushButton):
         if _dialog.exec():
             _color = _dialog.get_color()
             self._set_value(_color)
+    
+    def paintEvent(self, event):
+        """Override to paint the color."""
+        _painter = QPainter(self)
+        _painter.setRenderHint(QPainter.Antialiasing)
+        _rect = QRectF(self.rect())
+
+        if self._value.get_value()[3] < 1:
+            _painter.setBrush(QBrush(QColor.fromRgbF(.9, .9, .9)))
+            _painter.setPen(Qt.NoPen)
+            _painter.drawRoundedRect(_rect, 3, 3)
+
+            _pixmap = QPixmap("checker.png")
+            _path = QPainterPath()
+            _rect2 = QRectF(_rect.left()+1, _rect.top()+1,
+                            _rect.width()-2, _rect.height()-2)
+            _path.addRoundedRect(_rect2, 3, 3)
+            _painter.setClipPath(_path)
+            _painter.setClipping(True)
+            _painter.drawTiledPixmap(_rect, _pixmap)
+            _painter.setClipping(False)
+        
+        _red, _green, _blue, _alpha = tuple(self._value.get_value())
+        _painter.setBrush(QBrush(QColor.fromRgbF(_red, _green, _blue, _alpha)))
+        _painter.setPen(Qt.NoPen)
+        _painter.drawRoundedRect(_rect, 3, 3)
+
+        super().paintEvent(event)

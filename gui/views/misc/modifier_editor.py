@@ -15,10 +15,12 @@ from core.entities.modifier_repository import ModifierRepository
 from gui.views.inputs.color_input import ColorInput
 from gui.views.inputs.vector2_input import Vector2Input
 from gui.views.inputs.boolean_input import BooleanInput
+from gui.views.inputs.number_input import NumberInput
 from data_types.data_type import DataType
 from data_types.color import Color
 from data_types.vector2 import Vector2
 from data_types.boolean import Boolean
+from data_types.number import Number
 from utils.notification import Notification
 
 
@@ -64,6 +66,8 @@ class ModifierEditor(QFrame):
                 _input = Vector2Input(self, _param.get_current_value())
             elif _type is Boolean:
                 _input = BooleanInput(self, _param.get_current_value())
+            elif _type is Number:
+                _input = NumberInput(self, _param.get_current_value())
             else:
                 continue
 
