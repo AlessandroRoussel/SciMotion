@@ -16,7 +16,9 @@ class TypeNumberInput(QLineEdit):
     _value: float
     _min: float
     _max: float
+
     _decimals: int
+    _display_factor: float
 
     value_changed: Notification
 
@@ -25,7 +27,9 @@ class TypeNumberInput(QLineEdit):
                  value: Union[Number, float] = None,
                  min: Union[Number, float] = Number.negInfinity,
                  max: Union[Number, float] = Number.Infinity,
-                 decimals: int = 6):
+                 decimals: int = 6,
+                 color: list[int] = None,
+                 display_factor: float = 1):
         super().__init__(parent)
         if value is not None and not isinstance(value, Number):
             value = Number(value)
@@ -37,11 +41,15 @@ class TypeNumberInput(QLineEdit):
         self._min = min.get_value()
         self._max = max.get_value()
         self._decimals = decimals
+        self._display_factor = display_factor
 
         self.setCursor(Qt.PointingHandCursor)
         self.setAlignment(Qt.AlignCenter)
-        _color = QApplication.palette().accent().color()
-        _rgb = (f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
+        if color is None:
+            _color = QApplication.palette().accent().color()
+            _rgb = (f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
+        else:
+            _rgb = (f"rgb({color[0]}, {color[1]}, {color[2]})")
         self.setStyleSheet(f"""
             QLineEdit {{
                 padding: {Config.input.padding};
@@ -61,11 +69,15 @@ class TypeNumberInput(QLineEdit):
         
         self.value_changed = Notification()
         self.textChanged.connect(self._update_width)
-        self._set_value((value.get_value() if value is not None
+        self.set_value((value.get_value() if value is not None
                          else Number.default().get_value()))
         self._update_width()
     
-    def _set_value(self, value: float):
+    def block_signals(self, block: bool = True):
+        """Block / unblock signals."""
+        self.value_changed.block(block)
+
+    def set_value(self, value: float):
         """Set the value stored by the input."""
         self._value = min(max(value, self._min), self._max)
         self.value_changed.emit(self.get_value())
@@ -73,7 +85,8 @@ class TypeNumberInput(QLineEdit):
     
     def _update_text(self):
         """Update the text to match the value."""
-        self.setText(f"{self._value:.{self._decimals}f}")
+        _val = self._value*self._display_factor
+        self.setText(f"{_val:.{self._decimals}f}")
     
     def keyPressEvent(self, event):
         """Handle key press event."""
@@ -90,7 +103,7 @@ class TypeNumberInput(QLineEdit):
         """Handle focus out event."""
         self.setCursor(Qt.PointingHandCursor)
         try:
-            self._set_value(float(self.text()))
+            self.set_value(float(self.text())/self._display_factor)
         except ValueError:
             self._update_text()
         super().focusOutEvent(event)

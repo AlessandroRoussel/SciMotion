@@ -80,8 +80,8 @@ class NDArray(DataType):
 
     def __repr__(self):
         """Return a string representation of the NDArray."""
-        string = f"{self._value}"[1:-1]
-        return f"{type(self).__name__}({string})"
+        _string = f"{self._value}"[1:-1]
+        return f"{type(self).__name__}({_string})"
 
     def get_value(self):
         """Return the value as a list."""

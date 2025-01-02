@@ -15,10 +15,10 @@ class App(QApplication):
 
     def __init__(self):
         """Initialize the app."""
-        super().__init__()
-        self.setAttribute(Qt.AA_EnableHighDpiScaling)
         self.setHighDpiScaleFactorRoundingPolicy(
             Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+        self.setAttribute(Qt.AA_EnableHighDpiScaling)
+        super().__init__()
 
         GLContext.get_context()
         _main_window = MainWindow()

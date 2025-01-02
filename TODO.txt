@@ -1,5 +1,6 @@
 TODO:
-  create a library of inputs related to datatypes
+  add flags to ParameterTemplates, such as ANGLE, PERCENTAGE, POINT, for value display hints
+  transfer the solidlayer properties to a more general properties slot in the Layer class, using ParameterTemplates
 
   create box blur with fast accumulate algo
   create repeted box blur

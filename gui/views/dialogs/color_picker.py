@@ -15,6 +15,8 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from utils.config import Config
 from data_types.color import Color
 from gui.services.dialog_service import DialogService
+from utils.color_management import ColorSpace
+from gui.views.inputs.type_number_input import TypeNumberInput
 
 
 class ColorSliderType(Enum):
@@ -88,36 +90,45 @@ class ColorPickerSlider(QSlider):
         if self._type in [ColorSliderType.HUE,
                           ColorSliderType.SATURATION,
                           ColorSliderType.LIGHTNESS]:
-            # TODO : implement my own static helper method for HSL <-> RGB
-            _qcolor = QColor.fromRgbF(*self._style_color.get_value())
-            _hue = _qcolor.hslHueF()
-            _sat = _qcolor.hslSaturationF()
-            _light = _qcolor.lightnessF()
-
+            _hsl = self._style_color.get_value(ColorSpace.HSL)
             if self._type == ColorSliderType.HUE:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromHslF(_i%1, _sat, _light))
-            elif self._type == ColorSliderType.SATURATION:
+                    _gradient.setColorAt(_i,
+                                         QColor.fromHslF(
+                                             _i%1, _hsl[1], _hsl[2]))
+            if self._type == ColorSliderType.SATURATION:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromHslF(_hue, _i, _light))
-            elif self._type == ColorSliderType.LIGHTNESS:
+                    _gradient.setColorAt(_i,
+                                         QColor.fromHslF(
+                                             _hsl[0], _i, _hsl[2]))
+            if self._type == ColorSliderType.LIGHTNESS:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromHslF(_hue, _sat, _i))
+                    _gradient.setColorAt(_i,
+                                         QColor.fromHslF(
+                                             _hsl[0], _hsl[1], _i))
     
         else:
-            _red, _green, _blue, _alpha = tuple(self._style_color.get_value())
+            _rgb = self._style_color.get_value(ColorSpace.SRGB)
             if self._type == ColorSliderType.RED:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromRgbF(_i, _green, _blue))
+                    _gradient.setColorAt(_i,
+                                         QColor.fromRgbF(
+                                             _i, _rgb[1], _rgb[2]))
             elif self._type == ColorSliderType.GREEN:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromRgbF(_red, _i, _blue))
+                    _gradient.setColorAt(_i,
+                                         QColor.fromRgbF(
+                                             _rgb[0], _i, _rgb[2]))
             elif self._type == ColorSliderType.BLUE:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromRgbF(_red, _green, _i))
+                    _gradient.setColorAt(_i,
+                                         QColor.fromRgbF(
+                                             _rgb[0], _rgb[1], _i))
             elif self._type == ColorSliderType.ALPHA:
                 for _i in _gradient_linspace:
-                    _gradient.setColorAt(_i, QColor.fromRgbF(_red, _green, _blue, _i))
+                    _gradient.setColorAt(_i,
+                                         QColor.fromRgbF(
+                                             _rgb[0], _rgb[1], _rgb[2], _i))
 
         _painter.setBrush(QBrush(_gradient))
         _painter.setPen(Qt.NoPen)
@@ -142,7 +153,7 @@ class ColorDisplay(QWidget):
     
     def set_color(self, color: Color):
         """Set the displayed color."""
-        self._color = color.get_value()
+        self._color = color.get_value(ColorSpace.SRGB)
         self.update()
     
     def paintEvent(self, event):
@@ -168,7 +179,7 @@ class ColorDisplay(QWidget):
             _painter.setClipping(False)
 
         _painter.setBrush(QBrush(QColor.fromRgbF(*self._color)))
-        _painter.setPen(Qt.NoPen)
+        _painter.setPen(QPen(self.palette().window().color(), 1))
         _painter.drawRoundedRect(_rect, _rounding, _rounding)
 
 
@@ -196,9 +207,7 @@ class ColorWheel(QOpenGLWidget):
     
     def style_from_color(self, color: Color):
         """Style the slider according to a color."""
-        # TODO : make my own helper function to convert HSV <-> RGB
-        _qcolor = QColor.fromRgbF(*color.get_value())
-        self._hue = _qcolor.hsvHueF()
+        self._hue = color.get_value(ColorSpace.HSV)[0]
         self.update()
     
     def resizeGL(self, width: int, height: int):
@@ -332,6 +341,7 @@ class ColorPicker(QDialog):
     _color_display: ColorDisplay
     #_color_wheel: ColorWheel
     _rgba_sliders: list[ColorPickerSlider]
+    _rgba_inputs: list[TypeNumberInput]
     _hsl_sliders: list[ColorPickerSlider]
 
 
@@ -384,10 +394,19 @@ class ColorPicker(QDialog):
         self._hsl_sliders.append(ColorPickerSlider(self, ColorSliderType.SATURATION))
         self._hsl_sliders.append(ColorPickerSlider(self, ColorSliderType.LIGHTNESS))
 
+        self._rgba_inputs = [TypeNumberInput(self, min=0, max=1, decimals=2)
+                             for _i in range(4)]
+        self._hsl_inputs = [TypeNumberInput(self, min=0, max=1, decimals=2)
+                             for _i in range(3)]
+
         for _slider in self._rgba_sliders:
             _slider.valueChanged.connect(self._set_color_from_rgba_sliders)
         for _slider in self._hsl_sliders:
             _slider.valueChanged.connect(self._set_color_from_hsl_sliders)
+        for _input in self._rgba_inputs:
+            _input.value_changed.connect(self._set_color_from_rgba_inputs)
+        for _input in self._hsl_inputs:
+            _input.value_changed.connect(self._set_color_from_hsl_inputs)
 
         _sliders_layout.addWidget(self._rgba_sliders[0], 0, 1)
         _sliders_layout.addWidget(self._rgba_sliders[1], 1, 1)
@@ -395,6 +414,9 @@ class ColorPicker(QDialog):
         _sliders_layout.addWidget(QLabel("R", self), 0, 0)
         _sliders_layout.addWidget(QLabel("G", self), 1, 0)
         _sliders_layout.addWidget(QLabel("B", self), 2, 0)
+        _sliders_layout.addWidget(self._rgba_inputs[0], 0, 2)
+        _sliders_layout.addWidget(self._rgba_inputs[1], 1, 2)
+        _sliders_layout.addWidget(self._rgba_inputs[2], 2, 2)
 
         _sliders_layout.setRowMinimumHeight(3, 16)
 
@@ -404,11 +426,15 @@ class ColorPicker(QDialog):
         _sliders_layout.addWidget(QLabel("H", self), 4, 0)
         _sliders_layout.addWidget(QLabel("S", self), 5, 0)
         _sliders_layout.addWidget(QLabel("L", self), 6, 0)
+        _sliders_layout.addWidget(self._hsl_inputs[0], 4, 2)
+        _sliders_layout.addWidget(self._hsl_inputs[1], 5, 2)
+        _sliders_layout.addWidget(self._hsl_inputs[2], 6, 2)
 
         _sliders_layout.setRowMinimumHeight(7, 16)
 
         _sliders_layout.addWidget(self._rgba_sliders[3], 8, 1)
         _sliders_layout.addWidget(QLabel("A", self), 8, 0)
+        _sliders_layout.addWidget(self._rgba_inputs[3], 8, 2)
         
         self._set_rgba_sliders_from_color()
         self._set_hsl_sliders_from_color()
@@ -423,39 +449,57 @@ class ColorPicker(QDialog):
             _slider.blockSignals(block)
         for _slider in self._hsl_sliders:
             _slider.blockSignals(block)
+        for _input in self._rgba_inputs:
+            _input.block_signals(block)
+        for _input in self._hsl_inputs:
+            _input.block_signals(block)
 
     def _set_color_from_rgba_sliders(self):
         """React to changes in the RGBA sliders."""
-        _red = self._rgba_sliders[0].get_value()
-        _green = self._rgba_sliders[1].get_value()
-        _blue = self._rgba_sliders[2].get_value()
-        _alpha = self._rgba_sliders[3].get_value()
-        self._color = Color(_red, _green, _blue, _alpha)
+        _rgba = [_slider.get_value() for _slider in self._rgba_sliders]
+        self._color = Color(*_rgba, color_space=ColorSpace.SRGB)
 
         self._update_displayed_colors()
         self._set_hsl_sliders_from_color()
+        self._set_rgba_inputs_from_color()
+        self._set_hsl_inputs_from_color()
     
     def _set_color_from_hsl_sliders(self):
         """React to changes in the HSL sliders."""
-        _hue = self._hsl_sliders[0].get_value()
-        _sat = self._hsl_sliders[1].get_value()
-        _light = self._hsl_sliders[2].get_value()
+        _hsl = [_slider.get_value() for _slider in self._hsl_sliders]
         _alpha = self._rgba_sliders[3].get_value()
-
-        # TODO : implement my own static helper method for HSL <-> RGB
-        _qcolor = QColor.fromHslF(_hue, _sat, _light, _alpha)
-        _red = _qcolor.redF()
-        _green = _qcolor.greenF()
-        _blue = _qcolor.blueF()
-        self._color = Color(_red, _green, _blue, _alpha)
+        self._color = Color(*_hsl, _alpha, color_space=ColorSpace.HSL)
 
         self._update_displayed_colors()
         self._set_rgba_sliders_from_color()
+        self._set_rgba_inputs_from_color()
+        self._set_hsl_inputs_from_color()
+    
+    def _set_color_from_rgba_inputs(self, value):
+        """React to changes in the RGBA inputs."""
+        _rgba = [_input.get_value().get_value() for _input in self._rgba_inputs]
+        self._color = Color(*_rgba, color_space=ColorSpace.SRGB)
+
+        self._update_displayed_colors()
+        self._set_rgba_sliders_from_color()
+        self._set_hsl_sliders_from_color()
+        self._set_hsl_inputs_from_color()
+    
+    def _set_color_from_hsl_inputs(self, value):
+        """React to changes in the HSL inputs."""
+        _hsl = [_input.get_value().get_value() for _input in self._hsl_inputs]
+        _alpha = self._rgba_inputs[3].get_value().get_value()
+        self._color = Color(*_hsl, _alpha, color_space=ColorSpace.HSL)
+
+        self._update_displayed_colors()
+        self._set_rgba_sliders_from_color()
+        self._set_hsl_sliders_from_color()
+        self._set_rgba_inputs_from_color()
     
     def _set_rgba_sliders_from_color(self):
         """Set the RGBA sliders values from the current color."""
         self._block_signals(True)
-        _rgba = self._color.get_value()
+        _rgba = self._color.get_value(ColorSpace.SRGB)
         for _i in range(4):
             self._rgba_sliders[_i].setValue(
                 int(round(self._rgba_sliders[_i].maximum()*_rgba[_i])))
@@ -464,14 +508,26 @@ class ColorPicker(QDialog):
     def _set_hsl_sliders_from_color(self):
         """Set the HSL sliders values from the current color."""
         self._block_signals(True)
-        # TODO : implement my own static helper method for HSL <-> RGB
-        _qcolor = QColor.fromRgbF(*self._color.get_value())
-        _hsl = [_qcolor.hslHueF(),
-                _qcolor.hslSaturationF(),
-                _qcolor.lightnessF()]
+        _hsl = self._color.get_value(ColorSpace.HSL)
         for _i in range(3):
             self._hsl_sliders[_i].setValue(
                 int(round(self._hsl_sliders[_i].maximum()*_hsl[_i])))
+        self._block_signals(False)
+    
+    def _set_rgba_inputs_from_color(self):
+        """Set the RGBA inputs values from the current color."""
+        self._block_signals(True)
+        _rgba = self._color.get_value(ColorSpace.SRGB)
+        for _i in range(4):
+            self._rgba_inputs[_i].set_value(_rgba[_i])
+        self._block_signals(False)
+    
+    def _set_hsl_inputs_from_color(self):
+        """Set the HSL inputs values from the current color."""
+        self._block_signals(True)
+        _hsl = self._color.get_value(ColorSpace.HSL)
+        for _i in range(3):
+            self._hsl_inputs[_i].set_value(_hsl[_i])
         self._block_signals(False)
 
     def _update_displayed_colors(self):

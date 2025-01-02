@@ -35,6 +35,7 @@ class RenderService:
     _transform_program: moderngl.Program = None
     _color_shader: moderngl.ComputeShader = None
     _compositing_shader: moderngl.ComputeShader = None
+    _tonemapping_shader: moderngl.ComputeShader = None
     _transform_msaa_fbo: moderngl.Buffer = None
     _transform_fbo: moderngl.Buffer = None
     _transform_msaa_texture: moderngl.Texture = None
@@ -179,7 +180,36 @@ class RenderService:
             _texture.release()
             cls._composite_over(cls._transform_texture, _result_texture)
 
+        cls._tonemap(_result_texture)
         return _result_texture
+
+    @classmethod
+    def _tonemap(cls, texture: moderngl.Texture):
+        """Apply tone mapping to convert linear RGB to sRGB."""
+        # TODO : handle different tonemapping algorithms
+        _gl_context = GLContext.get_context()
+        if cls._tonemapping_shader is None:
+            _glsl_code = """
+            #version 430
+            layout (local_size_x = 1, local_size_y = 1) in;
+            layout (rgba32f, binding = 0) uniform image2D texture;
+            void main() {
+                ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+                vec4 color = imageLoad(texture, coords);
+                vec3 linear = color.rgb;
+
+                bvec3 cutoff = lessThan(linear, vec3(.0031308));
+                vec3 higher = 1.055*pow(linear, vec3(1./2.4)) - .055;
+                vec3 lower = linear * 12.92;
+                vec3 sRGB = mix(higher, lower, cutoff);
+
+                vec4 out_color = clamp(vec4(sRGB, color.a), 0., 1.);
+                imageStore(texture, coords.xy, out_color);
+            }
+            """
+            cls._tonemapping_shader = _gl_context.compute_shader(_glsl_code)
+        texture.bind_to_image(0, read=True, write=True)
+        cls._tonemapping_shader.run(texture.width, texture.height, 1)
 
     @classmethod
     def _composite_over(cls,

@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, QRectF
 from data_types.color import Color
 from utils.notification import Notification
 from gui.views.dialogs.color_picker import ColorPicker
+from utils.color_management import ColorSpace
 
 
 class ColorInput(QPushButton):
@@ -38,7 +39,6 @@ class ColorInput(QPushButton):
     
     def _update_display(self):
         """Update the displayed color of the input."""
-        # TODO : display a checkerboard for transparent colors
         _color = QApplication.palette().accent().color()
         _border_rgb = (
             f"rgb({_color.red()}, {_color.green()}, {_color.blue()})")
@@ -67,7 +67,7 @@ class ColorInput(QPushButton):
         _painter.setRenderHint(QPainter.Antialiasing)
         _rect = QRectF(self.rect())
 
-        if self._value.get_value()[3] < 1:
+        if self._value.get_value(ColorSpace.SRGB)[3] < 1:
             _painter.setBrush(QBrush(QColor.fromRgbF(.9, .9, .9)))
             _painter.setPen(Qt.NoPen)
             _painter.drawRoundedRect(_rect, 3, 3)
@@ -82,8 +82,8 @@ class ColorInput(QPushButton):
             _painter.drawTiledPixmap(_rect, _pixmap)
             _painter.setClipping(False)
         
-        _red, _green, _blue, _alpha = tuple(self._value.get_value())
-        _painter.setBrush(QBrush(QColor.fromRgbF(_red, _green, _blue, _alpha)))
+        _rgba = self._value.get_value(ColorSpace.SRGB)
+        _painter.setBrush(QBrush(QColor.fromRgbF(*_rgba)))
         _painter.setPen(Qt.NoPen)
         _painter.drawRoundedRect(_rect, 3, 3)
 

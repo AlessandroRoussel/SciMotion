@@ -13,7 +13,7 @@ _parameters = [
         "name_id": "color_a",
         "title": "Color a",
         "data_type": "color",
-        "default_value": [.7, .7, .7]
+        "default_value": [.448, .448, .448]
     },
     {
         "name_id": "color_b",
