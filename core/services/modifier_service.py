@@ -16,7 +16,7 @@ from data_types.data_type_name import DataTypeName
 from core.entities.modifier_template import ModifierTemplate, ModifierFlag
 from core.entities.modifier_repository import ModifierRepository
 from core.entities.parameter_template import ParameterTemplate, ParameterFlag
-from core.entities.parameter import Parameter
+from core.services.animation_service import AnimationService
 from core.entities.modifier import Modifier
 from core.entities.layer import Layer
 
@@ -283,16 +283,7 @@ class ModifierService:
         _template = _repository[modifier_name_id]
         _parameter_list = []
         for _parameter_template in _template.get_parameter_template_list():
-            _accepts_keyframes = _parameter_template.get_accepts_keyframes()
-            _data_type = _parameter_template.get_data_type()
-            _default_value = _parameter_template.get_default_value()
-            _min_value = _parameter_template.get_min_value()
-            _max_value = _parameter_template.get_max_value()
-            _parameter = Parameter(accepts_keyframes=_accepts_keyframes,
-                                   data_type=_data_type,
-                                   default_value=_default_value,
-                                   min_value=_min_value,
-                                   max_value=_max_value)
+            _parameter = AnimationService.parameter_from_template(_parameter_template)
             _parameter_list.append(_parameter)
         _modifier = Modifier(modifier_name_id, _parameter_list)
         return _modifier

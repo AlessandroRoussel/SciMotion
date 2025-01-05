@@ -10,6 +10,7 @@ from typing import Union
 
 from data_types.data_type import DataType
 from core.entities.parameter import Parameter
+from core.entities.parameter_template import ParameterTemplate
 from core.entities.keyframe import Keyframe
 
 
@@ -78,3 +79,17 @@ class AnimationService:
 
         # The frame is after the last keyframe.
         return _list[-1].get_value()
+
+    @staticmethod
+    def parameter_from_template(parameter_template: ParameterTemplate) -> Parameter:
+        """Create a Parameter based on a ParameterTemplate."""
+        _accepts_keyframes = parameter_template.get_accepts_keyframes()
+        _data_type = parameter_template.get_data_type()
+        _default_value = parameter_template.get_default_value()
+        _min_value = parameter_template.get_min_value()
+        _max_value = parameter_template.get_max_value()
+        return Parameter(accepts_keyframes=_accepts_keyframes,
+                         data_type=_data_type,
+                         default_value=_default_value,
+                         min_value=_min_value,
+                         max_value=_max_value)

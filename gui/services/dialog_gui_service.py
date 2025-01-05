@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QWidget, QBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QDialog)
 
 
-class DialogService:
+class DialogGUIService:
     """A set of services for dialogs."""
 
     @staticmethod
@@ -48,3 +48,4 @@ class DialogService:
         _button_layout.addWidget(_ok_button)
         layout.addLayout(_button_layout)
         _ok_button.setDefault(True)
+    

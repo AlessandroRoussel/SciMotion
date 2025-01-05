@@ -135,26 +135,29 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
         if(any(greaterThan(coords, dimensions))){return;}
 
         vec4 color = imageLoad(img_input, coords);
-        vec3 uvw = vec3(vec2(coords)/dimensions, animated ? float(frame) : 0.);
-        uvw.z += float(seed);
+        if(amount > 0.){
+            vec3 uvw = vec3(vec2(coords)/dimensions,
+                            animated ? float(frame) : 0.);
+            uvw.z += float(seed);
 
-        vec3 chroma_noise = random_vec3(uvw);
-        vec3 luma_noise = vec3(random3(uvw*13.2+5.4));
-        chroma_noise = sqrt(2.)*inverf(2.*chroma_noise - 1.);
-        luma_noise = sqrt(2.)*inverf(2.*luma_noise - 1.);
-        vec3 noise = mix(luma_noise, chroma_noise, chromaticity);
-        noise /= sqrt(1.-2.*chromaticity*(1.-chromaticity));
+            vec3 chroma_noise = random_vec3(uvw);
+            vec3 luma_noise = vec3(random3(uvw*13.2+5.4));
+            chroma_noise = sqrt(2.)*inverf(2.*chroma_noise - 1.);
+            luma_noise = sqrt(2.)*inverf(2.*luma_noise - 1.);
+            vec3 noise = mix(luma_noise, chroma_noise, chromaticity);
+            noise /= sqrt(1.-2.*chromaticity*(1.-chromaticity));
 
-        if(distribution == 0){
-            noise = erf(noise/sqrt(2.)) * sqrt(3.);
-        }
+            if(distribution == 0){
+                noise = erf(noise/sqrt(2.)) * sqrt(3.);
+            }
 
-        if(space == 1){
-            color.rgb = linear_to_srgb(color.rgb);
-            color.rgb += noise * amount * .5;
-            color.rgb = srgb_to_linear(color.rgb);
-        }else{
-            color.rgb += noise * amount * .5;
+            if(space == 1){
+                color.rgb = linear_to_srgb(color.rgb);
+                color.rgb += noise * amount * .5;
+                color.rgb = srgb_to_linear(color.rgb);
+            }else{
+                color.rgb += noise * amount * .5;
+            }
         }
 
         imageStore(img_output, coords, color);

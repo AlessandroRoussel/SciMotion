@@ -14,14 +14,20 @@ _parameters = [
         "max_value" : 1
     },
     {
-        "name_id": "disc_min_max",
-        "title": "Disc inner and outer radii",
-        "data_type": "vector2",
-        "default_value": [6, 15]
+        "name_id": "disc_min",
+        "title": "Inner radius",
+        "data_type": "number",
+        "default_value": 6
+    },
+    {
+        "name_id": "disc_max",
+        "title": "Outer radius",
+        "data_type": "number",
+        "default_value": 15
     }
 ]
 
-def _apply(_render_context, tilt, spin, disc_min_max):
+def _apply(_render_context, tilt, spin, disc_min, disc_max):
     gl_context = _render_context.get_gl_context()
     width = _render_context.get_width()
     height = _render_context.get_height()
@@ -35,7 +41,8 @@ def _apply(_render_context, tilt, spin, disc_min_max):
 
     uniform float tilt;
     uniform float a;
-    uniform vec2 disc_min_max;
+    uniform float disc_min;
+    uniform float disc_max;
 
     #define PI 3.1415926538
 
@@ -150,9 +157,9 @@ def _apply(_render_context, tilt, spin, disc_min_max):
 
                 intersectPos = (pos*abs(lastpos.a)+lastpos*abs(pos.a))/abs(lastpos.a-pos.a);
                 float r = rFromCoords(intersectPos);
-                if(r > disc_min_max.x && r < disc_min_max.y){
+                if(r > disc_min && r < disc_max){
                     hitDisc = true;
-                    discUV = (intersectPos.yz/disc_min_max.y+1.)*.5;
+                    discUV = (intersectPos.yz/disc_max+1.)*.5;
                     vec4 discVel = vec4(r+a/sqrt(r),vec3(-intersectPos.z,intersectPos.y,0.)*sign(a)/sqrt(r))/sqrt(r*r-3.*r+2.*a*sqrt(r));
                     blueshift = 1./dot(p,discVel);
                     break;
@@ -180,7 +187,8 @@ def _apply(_render_context, tilt, spin, disc_min_max):
     compute_shader = gl_context.compute_shader(glsl_code)
     compute_shader["tilt"] = tilt
     compute_shader["a"] = spin
-    compute_shader["disc_min_max"] = disc_min_max
+    compute_shader["disc_min"] = disc_min
+    compute_shader["disc_max"] = disc_max
 
     _render_context.get_src_texture().bind_to_image(0, read=True, write=False)
     _render_context.get_dest_texture().bind_to_image(1, read=False, write=True)

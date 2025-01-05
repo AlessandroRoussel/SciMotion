@@ -14,7 +14,7 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 from utils.config import Config
 from data_types.color import Color
-from gui.services.dialog_service import DialogService
+from gui.services.dialog_gui_service import DialogGUIService
 from utils.color_management import ColorSpace
 from gui.views.inputs.type_number_input import TypeNumberInput
 
@@ -440,7 +440,7 @@ class ColorPicker(QDialog):
         self._set_lch_inputs_from_color()
         self._update_displayed_colors()
 
-        DialogService.add_ok_cancel(self, _layout)
+        DialogGUIService.add_ok_cancel(self, _layout)
         self.setLayout(_layout)
 
     def _block_signals(self, block: bool = True):

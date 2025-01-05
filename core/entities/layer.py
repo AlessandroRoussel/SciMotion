@@ -8,7 +8,11 @@ any type of layer such as a video, an image, an audio, a text...
 A Layer also holds a list of Modifier that are applied to it.
 """
 
+from data_types.data_type import DataType
 from core.entities.modifier import Modifier
+from core.entities.parameter import Parameter
+from core.entities.parameter_template import ParameterTemplate
+from core.services.animation_service import AnimationService
 
 
 class Layer:
@@ -18,6 +22,9 @@ class Layer:
     _start_frame: int
     _end_frame: int
     _modifier_list: list[Modifier]
+    _properties: dict[str, Parameter]
+
+    _properties_templates: dict[str, ParameterTemplate] = dict()
 
     def __init__(self,
                  title: str,
@@ -27,10 +34,31 @@ class Layer:
         self.set_start_frame(start_frame)
         self.set_end_frame(end_frame)
         self._modifier_list = []
+        self._properties = dict()
+        for _name_id, _property_template in self._properties_templates.items():
+            _property = AnimationService.parameter_from_template(
+                _property_template)
+            self._properties[_name_id] = _property
+
+    def get_properties_templates(self) -> dict[str, ParameterTemplate]:
+        """Return the properties templates."""
+        return self._properties_templates
 
     def get_modifier_list(self) -> list[Modifier]:
         """Return a reference to the modifier list."""
         return self._modifier_list
+    
+    def get_property(self, name_id: str) -> DataType:
+        """Return a property of the Layer."""
+        return self._properties[name_id].get_current_value()
+
+    def get_property_parameter(self, name_id: str) -> Parameter:
+        """Return a property Parameter of the Layer."""
+        return self._properties[name_id]
+
+    def set_property(self, name_id: str, value: DataType):
+        """Set a property of the Layer."""
+        return self._properties[name_id].set_current_value(value)
 
     def get_start_frame(self) -> int:
         """Return the layer start frame."""

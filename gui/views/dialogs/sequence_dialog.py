@@ -12,7 +12,7 @@ from gui.views.inputs.integer_input import IntegerInput
 from gui.views.inputs.type_number_input import TypeNumberInput
 from gui.views.inputs.time_input import TimeInput
 from data_types.number import Number
-from gui.services.dialog_service import DialogService
+from gui.services.dialog_gui_service import DialogGUIService
 
 
 class SequenceDialog(QDialog):
@@ -63,13 +63,13 @@ class SequenceDialog(QDialog):
         self._title_input.selectAll()
         
         # Add line edits to layouts:
-        DialogService.add_input(self, _layout, "Title", self._title_input)
-        DialogService.add_input(self, _layout, "Width", self._width_input, "px")
-        DialogService.add_input(self, _layout, "Height", self._height_input, "px")
-        DialogService.add_input(self, _layout, "Frame rate", self._fps_input, "f/s")
-        DialogService.add_input(self, _layout, "Duration", self._duration_input)
+        DialogGUIService.add_input(self, _layout, "Title", self._title_input)
+        DialogGUIService.add_input(self, _layout, "Width", self._width_input, "px")
+        DialogGUIService.add_input(self, _layout, "Height", self._height_input, "px")
+        DialogGUIService.add_input(self, _layout, "Frame rate", self._fps_input, "f/s")
+        DialogGUIService.add_input(self, _layout, "Duration", self._duration_input)
 
-        DialogService.add_ok_cancel(
+        DialogGUIService.add_ok_cancel(
             self, _layout, ok_text="Create sequence" if _create else "Apply")
         self.setLayout(_layout)
 

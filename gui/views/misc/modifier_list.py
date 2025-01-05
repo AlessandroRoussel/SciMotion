@@ -64,11 +64,11 @@ class ModifierList(QScrollArea):
         _layer = _sequence.get_layer(self._layer_id)
         _modifier_list = _layer.get_modifier_list()
         for _modifier in _modifier_list:
-            _editor = ModifierEditor(self, _modifier)
+            _editor = ModifierEditor(self,
+                                     _modifier,
+                                     self._sequence_id,
+                                     self._layer_id)
             self._layout.addWidget(_editor)
-            _editor.update_parameter_signal.connect(
-                lambda: ModifierGUIService.update_parameter_signal.emit(
-                    self._sequence_id, self._layer_id))
         self._layout.addStretch()
     
     def update_selected_layers(self, sequence_id: int):

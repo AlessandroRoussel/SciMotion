@@ -10,8 +10,9 @@ from core.entities.sequence import Sequence
 from gui.views.inputs.text_input import TextInput
 from gui.views.inputs.integer_input import IntegerInput
 from gui.views.inputs.color_input import ColorInput
-from gui.services.dialog_service import DialogService
+from gui.services.dialog_gui_service import DialogGUIService
 from core.entities.solid_layer import SolidLayer
+from data_types.integer import Integer
 from data_types.color import Color
 
 
@@ -35,9 +36,9 @@ class SolidLayerDialog(QDialog):
             _color = Color.BLACK
         else:
             _title = layer.get_title()
-            _width = layer.get_width()
-            _height = layer.get_height()
-            _color = layer.get_color()
+            _width = layer.get_property("width")
+            _height = layer.get_property("height")
+            _color = layer.get_property("color")
 
         self.setWindowTitle("Create new solid layer" if _create
                             else "Solid layer parameters")
@@ -57,19 +58,19 @@ class SolidLayerDialog(QDialog):
         self._title_input.selectAll()
         
         # Add line edits to layouts:
-        DialogService.add_input(self, _layout, "Title", self._title_input)
-        DialogService.add_input(self, _layout, "Width", self._width_input, "px")
-        DialogService.add_input(self, _layout, "Height", self._height_input, "px")
-        DialogService.add_input(self, _layout, "Color", self._color_input)
+        DialogGUIService.add_input(self, _layout, "Title", self._title_input)
+        DialogGUIService.add_input(self, _layout, "Width", self._width_input, "px")
+        DialogGUIService.add_input(self, _layout, "Height", self._height_input, "px")
+        DialogGUIService.add_input(self, _layout, "Color", self._color_input)
         
-        DialogService.add_ok_cancel(
+        DialogGUIService.add_ok_cancel(
             self, _layout, ok_text="Create layer" if _create else "Apply")
         self.setLayout(_layout)
 
-    def get_values(self) -> tuple[str, int, int, Color]:
+    def get_values(self) -> tuple[str, Integer, Integer, Color]:
         """Return the user inputs."""
         _title = self._title_input.get_value()
-        _width = self._width_input.get_int_value()
-        _height = self._height_input.get_int_value()
+        _width = self._width_input.get_value()
+        _height = self._height_input.get_value()
         _color = self._color_input.get_value()
         return _title, _width, _height, _color

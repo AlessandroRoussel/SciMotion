@@ -95,10 +95,11 @@ class RenderService:
                            sequence_ctx: SequenceContext
                            ) -> moderngl.Texture:
         """Render a SolidLayer to a texture."""
-        _width = layer.get_width()
-        _height = layer.get_height()
+        _width = layer.get_property("width").get_value()
+        _height = layer.get_property("height").get_value()
         _context = RenderContext(_width, _height, sequence_ctx)
-        _color = cls.get_parameter_value(layer.get_color(), sequence_ctx)
+        _color = cls.get_parameter_value(layer.get_property_parameter("color"),
+                                         sequence_ctx)
         _texture = cls.create_color_texture(_width, _height, _color)
         _context.set_src_texture(_texture)
         _modifier_list = layer.get_modifier_list()
@@ -309,15 +310,15 @@ class RenderService:
         # TODO : make this part thread safe, by storing the geometrical info
         # about the layer inside the RenderContext
         _position = cls.get_parameter_value(
-            visual_layer.get_position(), sequence_ctx)
+            visual_layer.get_property_parameter("position"), sequence_ctx)
         _anchor = cls.get_parameter_value(
-            visual_layer.get_anchor(), sequence_ctx)
+            visual_layer.get_property_parameter("anchor"), sequence_ctx)
         _scale = cls.get_parameter_value(
-            visual_layer.get_scale(), sequence_ctx)
+            visual_layer.get_property_parameter("scale"), sequence_ctx)
         _rotation = cls.get_parameter_value(
-            visual_layer.get_rotation(), sequence_ctx)
+            visual_layer.get_property_parameter("rotation"), sequence_ctx)
         _opacity = cls.get_parameter_value(
-            visual_layer.get_opacity(), sequence_ctx)
+            visual_layer.get_property_parameter("opacity"), sequence_ctx)
 
         cls._transform_program["in_texture"] = 0
         cls._transform_program["context_size"] = out_width, out_height
