@@ -7,7 +7,7 @@ cell dimensions, and generates a checkerboard pattern.
 
 _name_id = "checkerboard"
 _title = "Checkerboard"
-_flags = ["WRITEONLY"]
+_flags = ["writeonly"]
 _parameters = [
     {
         "name_id": "color_a",
@@ -42,7 +42,6 @@ _parameters = [
 ]
 
 # TODO : add rotation
-
 
 def _apply(_render_context, color_a, color_b, cell_size, center, antialiasing):
     gl_context = _render_context.get_gl_context()

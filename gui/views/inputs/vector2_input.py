@@ -21,8 +21,8 @@ class Vector2Input(QWidget):
     def __init__(self,
                  parent: QWidget = None,
                  value: Vector2 = None,
-                 min: Vector2 = Vector2.negInfinity,
-                 max: Vector2 = Vector2.Infinity,
+                 min: Vector2 = None,
+                 max: Vector2 = None,
                  decimals: int = 4,
                  step: float = .001):
         super().__init__(parent)
@@ -37,8 +37,10 @@ class Vector2Input(QWidget):
         self.value_changed = Notification()
         for _i in range(2):
             self._inputs.append(
-                NumberInput(self, value.get_value()[_i],
-                            min.get_value()[_i], max.get_value()[_i],
+                NumberInput(self,
+                            value.get_value()[_i],
+                            min.get_value()[_i] if min is not None else None,
+                            max.get_value()[_i] if max is not None else None,
                             decimals, step))
             self._inputs[_i].value_changed.connect(self._input_changed)
 

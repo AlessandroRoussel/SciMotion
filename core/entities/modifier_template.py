@@ -50,5 +50,5 @@ class ModifierTemplate:
         return self._apply_function
 
     def get_flags(self) -> set[ModifierFlag]:
-        """Retrieve effect flags."""
+        """Retrieve modifier flags."""
         return self._flags

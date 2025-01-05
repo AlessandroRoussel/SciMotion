@@ -10,7 +10,6 @@ we recover the original image.
 _name_id = "unmultiply"
 _title = "Unmultiply"
 
-
 def _apply(_render_context):
     gl_context = _render_context.get_gl_context()
     width = _render_context.get_width()

@@ -70,7 +70,8 @@ class GLViewer(QOpenGLWidget):
         self._texture = texture
         self._texture.repeat_x = False
         self._texture.repeat_y = False
-        self._texture.filter = moderngl.LINEAR, moderngl.NEAREST
+        self._texture.build_mipmaps()
+        self._texture.filter = moderngl.LINEAR_MIPMAP_LINEAR, moderngl.NEAREST
 
     def resizeGL(self, width: int, height: int):
         """React to resizing."""
@@ -164,8 +165,8 @@ class GLViewer(QOpenGLWidget):
         _tex_height = self._texture.height
         _scale_x = self._zoom * _tex_width / _width
         _scale_y = self._zoom * _tex_height / _height
-        _offset_x = self._zoom * (1 - 2*self._center_x) * _tex_width/_width
-        _offset_y = self._zoom * (-1 + 2*self._center_y) * _tex_height/_height
+        _offset_x = self._zoom * (1 - 2*self._center_x) * _tex_width/self.width()
+        _offset_y = self._zoom * (-1 + 2*self._center_y) * _tex_height/self.height()
         _transform = np.array([
             _scale_x, 0, 0, 0,
             0, _scale_y, 0, 0,

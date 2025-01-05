@@ -30,8 +30,8 @@ class TimeInput(QLineEdit):
                  parent: QWidget = None,
                  value: Union[Integer, int] = None,
                  frame_rate: float = 60,
-                 min: Union[Integer, int] = Integer.Minimum,
-                 max: Union[Integer, int] = Integer.Maximum,
+                 min: Union[Integer, int] = None,
+                 max: Union[Integer, int] = None,
                  step: float = 1):
         super().__init__(parent)
         if value is not None and not isinstance(value, Integer):
@@ -42,8 +42,8 @@ class TimeInput(QLineEdit):
             max = Integer(max)
 
         self._last_mouse_pos = None
-        self._min = min.get_value()
-        self._max = max.get_value()
+        self._min = min.get_value() if min is not None else None
+        self._max = max.get_value() if max is not None else None
         self._frame_rate = frame_rate
         self._step = step
         self._value = None
@@ -80,7 +80,14 @@ class TimeInput(QLineEdit):
     def _set_value(self, value: Union[float, int]):
         """Set the value stored by the input."""
         _prev_value = self._value
-        self._value = min(max(value, self._min), self._max)
+        if self._min is not None and self._max is not None:
+            self._value = min(max(value, self._min), self._max)
+        elif self._min is not None:
+            self._value = max(value, self._min)
+        elif self._max is not None:
+            self._value = min(value, self._max)
+        else:
+            self._value = value
         if(_prev_value is None
            or int(round(_prev_value)) != int(round(self._value))):
             self.value_changed.emit(self.get_value())

@@ -4,6 +4,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPalette, QColor
 
 from gui.views.main_window import MainWindow
 from core.entities.gl_context import GLContext

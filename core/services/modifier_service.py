@@ -15,7 +15,7 @@ import inspect
 from data_types.data_type_name import DataTypeName
 from core.entities.modifier_template import ModifierTemplate, ModifierFlag
 from core.entities.modifier_repository import ModifierRepository
-from core.entities.parameter_template import ParameterTemplate
+from core.entities.parameter_template import ParameterTemplate, ParameterFlag
 from core.entities.parameter import Parameter
 from core.entities.modifier import Modifier
 from core.entities.layer import Layer
@@ -93,16 +93,20 @@ class ModifierService:
             raise TypeError(f"Attribute '_title' in modifier "
                             f"'{_name_id}' should be a str.")
 
-        _flags = getattr(_module, "_flags", [])
-        if not isinstance(_flags, list):
+        _flags = set()
+        _flags_list = getattr(_module, "_flags", [])
+        if not isinstance(_flags_list, list):
             raise TypeError(f"Attribute '_flags' in modifier "
                             f"'{_name_id}' should be a list of str.")
-        for _flag_id in range(len(_flags)):
-            _flag_str = _flags[_flag_id]
+        for _flag_id in range(len(_flags_list)):
+            if not isinstance(_flags_list[_flag_id], str):
+                raise TypeError(f"Flag {_flag_id} in modifier "
+                                f"'{_name_id}' should be a str.")
+            _flag_str = str(_flags_list[_flag_id]).strip().upper()
             if not hasattr(ModifierFlag, _flag_str):
                 raise ValueError(f"Unkown flag '{_flag_str}' in "
                                  f"modifier '{_name_id}'")
-            _flags[_flag_id] = getattr(ModifierFlag, _flag_str)
+            _flags.add(getattr(ModifierFlag, _flag_str))
 
         # Retrieve parameters templates
         _parameters_info = getattr(_module, "_parameters", [])
@@ -167,6 +171,8 @@ class ModifierService:
             _max_value = None
             _default_value = None
             _accepts_keyframes = True
+            _flags = set()
+            _additional_data = dict()
 
             if "title" in _param_info:
                 _param_title = _param_info["title"]
@@ -190,6 +196,41 @@ class ModifierService:
                     raise TypeError(f"Attribute 'accepts_keyframes' of "
                                     f"parameter #{_param_count} from modifier "
                                     f"'{modifier_name_id}' should be a bool.")
+            
+            if "flags" in _param_info:
+                _raw_flags = _param_info["flags"]
+                if not isinstance(_raw_flags, list):
+                    raise TypeError(f"Attribute 'flags' of parameter "
+                                    f"#{_param_count} from modifier "
+                                    f"'{modifier_name_id}' should be "
+                                    f"a list of str.")
+                for _flag in _raw_flags:
+                    if not isinstance(_flag, str):
+                        raise TypeError(f"Attribute 'flags' of parameter "
+                                        f"#{_param_count} from modifier "
+                                        f"'{modifier_name_id}' should be "
+                                        f"a list of str.")
+                    _flag_str = str(_flag).strip().upper()
+                    if not hasattr(ParameterFlag, _flag_str):
+                        raise ValueError(f"Unkown flag '{_flag_str}' in "
+                                        f"parameter #{_param_count} from "
+                                        f"modifier '{modifier_name_id}'.")
+                    _flags.add(getattr(ParameterFlag, _flag_str))
+            
+            if "additional_data" in _param_info:
+                _data = _param_info["additional_data"]
+                if not isinstance(_data, dict):
+                    raise TypeError(f"Attribute 'additional_data' of "
+                                    f"parameter #{_param_count} from "
+                                    f"modifier '{modifier_name_id}' "
+                                    f"should be a dict with str keys.")
+                for _key, _value in _data.items():
+                    if not isinstance(_key, str):
+                        raise TypeError(f"Attribute 'additional_data' of "
+                                        f"parameter #{_param_count} from "
+                                        f"modifier '{modifier_name_id}' "
+                                        f"should be a dict with str keys.")
+                    _additional_data[str(_key).strip().lower()] = _value
 
             _parameter_template = ParameterTemplate(
                 _name_id,
@@ -198,7 +239,9 @@ class ModifierService:
                 default_value=_default_value,
                 min_value=_min_value,
                 max_value=_max_value,
-                accepts_keyframes=_accepts_keyframes
+                accepts_keyframes=_accepts_keyframes,
+                flags=_flags,
+                additional_data=_additional_data
             )
             _parameter_template_list.append(_parameter_template)
             _param_count += 1

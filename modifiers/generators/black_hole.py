@@ -1,6 +1,5 @@
 _name_id = "black_hole"
 _title = "Black hole"
-_flags = []
 _parameters = [
     {
         "name_id": "tilt",
@@ -21,7 +20,6 @@ _parameters = [
         "default_value": [6, 15]
     }
 ]
-
 
 def _apply(_render_context, tilt, spin, disc_min_max):
     gl_context = _render_context.get_gl_context()

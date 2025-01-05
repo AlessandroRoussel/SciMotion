@@ -5,6 +5,8 @@ from typing import Union
 import numpy as np
 
 
+# TODO : distinguish color spaces (Rec 709, Rec 2020 etc) and 
+
 class ColorSpace(Enum):
     """Defines a list of color spaces."""
 
@@ -27,6 +29,22 @@ class ColorManagement:
     xyz_to_linear_matrix = np.array([[3.2406255, -1.537208, -.4986286],
                                      [-.9689307, 1.8757561, .0415175],
                                      [.0557101, -.2040211, 1.0569959]])
+    
+    linear_to_lms_matrix = np.array([[.4122214708, .5363325363, .0514459929],
+                                     [.2119034982, .6806995451, .1073969566],
+                                     [.0883024619, .2817188376, .6299787005]])
+    
+    lms_to_oklab_matrix = np.array([[.2104542553, .793617785, -.0040720468],
+                                    [1.9779984951, -2.428592205, .4505937099],
+                                    [.0259040371, .7827717662, -.808675766]])
+    
+    oklab_to_lms_matrix = np.array([[1., .3963377774, .2158037573],
+                                    [1., -.1055613458, -.0638541728],
+                                    [1., -.0894841775, -1.291485548]])
+    
+    lms_to_linear_matrix = np.array([[4.0767416621, -3.3077115913, 0.2309699292],
+                                    [-1.2684380046, 2.6097574011, -0.3413193965],
+                                    [-0.0041960863, -0.7034186147, 1.7076147010]])
     
     @classmethod
     def convert(cls,
@@ -88,6 +106,34 @@ class ColorManagement:
                 return cls.srgb_to_hsv(cls.convert(
                     _values, src_space, ColorSpace.SRGB))
         
+        # okLch management:
+        if src_space == ColorSpace.OKLCH:
+            if dest_space == ColorSpace.OKLAB:
+                return cls.oklch_to_oklab(_values)
+            else:
+                return cls.convert(cls.oklch_to_oklab(_values),
+                               ColorSpace.OKLAB, dest_space)
+        if dest_space == ColorSpace.OKLCH:
+            if src_space == ColorSpace.OKLAB:
+                return cls.oklab_to_oklch(_values)
+            else:
+                return cls.oklab_to_oklch(cls.convert(
+                    _values, src_space, ColorSpace.OKLAB))
+
+        # okLab management:
+        if src_space == ColorSpace.OKLAB:
+            if dest_space == ColorSpace.LINEAR:
+                return cls.oklab_to_linear(_values)
+            else:
+                return cls.convert(cls.oklab_to_linear(_values),
+                               ColorSpace.LINEAR, dest_space)
+        if dest_space == ColorSpace.OKLAB:
+            if src_space == ColorSpace.LINEAR:
+                return cls.linear_to_oklab(_values)
+            else:
+                return cls.linear_to_oklab(cls.convert(
+                    _values, src_space, ColorSpace.LINEAR))
+        
         raise NotImplementedError(f"Conversion between {src_space} and "
                                   f"{dest_space} is not implemented.")
 
@@ -104,7 +150,7 @@ class ColorManagement:
     def linear_to_xyz(cls, in_color: np.ndarray) -> np.ndarray:
         """Convert linear to XYZ."""
         _out_color = cls.linear_to_xyz_matrix @ in_color[:3].reshape((3, 1))
-        return np.append(_out_color, in_color[3])
+        return np.append(_out_color.reshape((3,)), in_color[3])
 
     @staticmethod
     def linear_to_srgb(in_color: np.ndarray) -> np.ndarray:
@@ -113,13 +159,13 @@ class ColorManagement:
         _filter = _out_color > .0031308
         _out_color[_filter] = 1.055*_out_color[_filter]**(1/2.4)-.055
         _out_color[~_filter] = _out_color[~_filter]*12.92
-        return np.clip(np.append(_out_color, in_color[3]), 0, 1)
+        return np.append(_out_color, in_color[3])
 
     @classmethod
     def xyz_to_linear(cls, in_color: np.ndarray) -> np.ndarray:
         """Convert XYZ to linear."""
-        _out_color = cls.xyz_to_linear @ in_color[:3].reshape((3, 1))
-        return np.append(_out_color, in_color[3])
+        _out_color = cls.xyz_to_linear_matrix @ in_color[:3].reshape((3, 1))
+        return np.append(_out_color.reshape((3,)), in_color[3])
     
     @classmethod
     def srgb_to_hsl(cls, in_color: np.ndarray) -> np.ndarray:
@@ -138,7 +184,7 @@ class ColorManagement:
         elif _max == in_color[2]:
             _hue = ((in_color[0]-in_color[1])/_delta+4)/6
         _out = [_hue%1, _saturation, _luminance]
-        return np.clip(np.append(_out, in_color[3]), 0, 1)
+        return np.append(_out, in_color[3])
     
     @classmethod
     def hsl_to_srgb(cls, in_color: np.ndarray) -> np.ndarray:
@@ -159,7 +205,7 @@ class ColorManagement:
             _out_color = np.array([_x, 0, _delta]) + _min
         else:
             _out_color = np.array([_delta, 0, _x]) + _min
-        return np.clip(np.append(_out_color, in_color[3]), 0, 1)
+        return np.append(_out_color, in_color[3])
 
     @classmethod
     def srgb_to_hsv(cls, in_color: np.ndarray) -> np.ndarray:
@@ -177,7 +223,7 @@ class ColorManagement:
         elif _value == in_color[2]:
             _hue = ((in_color[0]-in_color[1])/_delta+4)/6
         _out = [_hue%1, _saturation, _value]
-        return np.clip(np.append(_out, in_color[3]), 0, 1)
+        return np.append(_out, in_color[3])
     
     @classmethod
     def hsv_to_srgb(cls, in_color: np.ndarray) -> np.ndarray:
@@ -198,4 +244,34 @@ class ColorManagement:
             _out_color = np.array([_x, 0, _delta]) + _min
         else:
             _out_color = np.array([_delta, 0, _x]) + _min
-        return np.clip(np.append(_out_color, in_color[3]), 0, 1)
+        return np.append(_out_color, in_color[3])
+
+    @classmethod
+    def oklab_to_oklch(cls, in_color: np.ndarray) -> np.ndarray:
+        """Convert okLab to okLch."""
+        _chroma = np.sqrt(in_color[1]**2 + in_color[2]**2)
+        _hue = (np.atan2(in_color[2], in_color[1])/(2*np.pi)) % 1
+        return np.array([in_color[0], _chroma, _hue, in_color[3]])
+
+    @classmethod
+    def oklch_to_oklab(cls, in_color: np.ndarray) -> np.ndarray:
+        """Convert okLch to okLab."""
+        _a = in_color[1] * np.cos(in_color[2]*2*np.pi)
+        _b = in_color[1] * np.sin(in_color[2]*2*np.pi)
+        return np.array([in_color[0], _a, _b, in_color[3]])
+
+    @classmethod
+    def oklab_to_linear(cls, in_color: np.ndarray) -> np.ndarray:
+        """Convert okLab to linear."""
+        _lms = cls.oklab_to_lms_matrix @ in_color[:3].reshape((3, 1))
+        _lms = _lms ** 3
+        _out_color = cls.lms_to_linear_matrix @ _lms
+        return np.append(_out_color.reshape((3,)), in_color[3])
+    
+    @classmethod
+    def linear_to_oklab(cls, in_color: np.ndarray) -> np.ndarray:
+        """Convert linear to okLab."""
+        _lms = cls.linear_to_lms_matrix @ in_color[:3].reshape((3, 1))
+        _lms = _lms ** (1/3)
+        _out_color = cls.lms_to_oklab_matrix @ _lms
+        return np.append(_out_color.reshape((3,)), in_color[3])

@@ -25,8 +25,8 @@ class TypeNumberInput(QLineEdit):
     def __init__(self,
                  parent: QWidget = None,
                  value: Union[Number, float] = None,
-                 min: Union[Number, float] = Number.negInfinity,
-                 max: Union[Number, float] = Number.Infinity,
+                 min: Union[Number, float] = None,
+                 max: Union[Number, float] = None,
                  decimals: int = 6,
                  color: list[int] = None,
                  display_factor: float = 1):
@@ -38,8 +38,8 @@ class TypeNumberInput(QLineEdit):
         if max is not None and not isinstance(max, Number):
             max = Number(max)
 
-        self._min = min.get_value()
-        self._max = max.get_value()
+        self._min = min.get_value() if min is not None else None
+        self._max = max.get_value() if max is not None else None
         self._decimals = decimals
         self._display_factor = display_factor
 
@@ -79,7 +79,14 @@ class TypeNumberInput(QLineEdit):
 
     def set_value(self, value: float):
         """Set the value stored by the input."""
-        self._value = min(max(value, self._min), self._max)
+        if self._min is not None and self._max is not None:
+            self._value = min(max(value, self._min), self._max)
+        elif self._min is not None:
+            self._value = max(value, self._min)
+        elif self._max is not None:
+            self._value = min(value, self._max)
+        else:
+            self._value = value
         self.value_changed.emit(self.get_value())
         self._update_text()
     

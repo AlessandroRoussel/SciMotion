@@ -1,5 +1,6 @@
 TODO:
   add flags to ParameterTemplates, such as ANGLE, PERCENTAGE, POINT, for value display hints
+  add ability to use oklab to interpolate colors instead of linear color space
   transfer the solidlayer properties to a more general properties slot in the Layer class, using ParameterTemplates
 
   create box blur with fast accumulate algo
