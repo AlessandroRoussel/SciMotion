@@ -1,7 +1,7 @@
 TODO:
   add flags to ParameterTemplates, such as ANGLE, PERCENTAGE, POINT, for value display hints
-  add ability to use oklab to interpolate colors instead of linear color space
-  transfer the solidlayer properties to a more general properties slot in the Layer class, using ParameterTemplates
+  fix bug when adding a linear gradient to a 4x4 sequence and slightly changing the points
+  make a "request_once" method for modifiers to avoid creating shaders every time
 
   create box blur with fast accumulate algo
   create repeted box blur
@@ -15,7 +15,7 @@ Sequence flow:
   CORE can call MEDIA
 
 Instructions:
-  GUI can never see the entities within CORE (only retrieve generic data or CORE DTO)
+  CORE can never see the entities within GUI (only retrieve generic data or CORE DTO)
   CORE can never see the entities within MEDIA (only retrieve generic data)
   The module MEDIA must be independent from other modules
   Use DTO (class with only data, no methods / logic) to communicate from CORE to MEDIA if needed
@@ -53,19 +53,3 @@ Coding conventions:
   use str.endswith(".ext") to check extensions
   always use isinstance when checking types
   add variable type hints
-
-Models:
-  Layer:
-    title: str
-
-  VisualLayer(Layer):
-    position: Parameter[Vector2]
-    scale: Parameter[Vector2]
-    rotation: Parameter[Number]
-    opacity: Parameter[Number]
-    blend_mode_id: BlendModeId
-
-  SolidLayer(VisualLayer):
-    width: int
-    height: int
-    color: Parameter[Color]

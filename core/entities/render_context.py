@@ -72,6 +72,10 @@ class RenderContext:
         self._src_texture = self.get_dest_texture()
         self._dest_texture = self.get_gl_context().texture(
             (self.get_width(), self.get_height()), 4, dtype="f4")
+    
+    def pass_through(self):
+        """Copy the src texture onto the dest texture."""
+        self._dest_texture = self._src_texture
 
     def set_src_texture(self, texture: moderngl.Texture):
         """Set the source moderngl texture."""

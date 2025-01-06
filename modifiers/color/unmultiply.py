@@ -25,7 +25,7 @@ def _apply(_render_context):
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
         ivec2 dimensions = imageSize(img_output).xy;
-        if(any(greaterThan(coords, dimensions))){return;}
+        if(any(greaterThanEqual(coords, dimensions))){return;}
 
         vec4 src_color = imageLoad(img_input, coords);
         float max_rgb = max(src_color.r, max(src_color.g, src_color.b));

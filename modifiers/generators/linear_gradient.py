@@ -105,12 +105,13 @@ def _apply(_render_context, color_a, color_b, point_a, point_b, interpolation):
 
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-        vec2 dimensions = vec2(imageSize(img_output).xy);
-        if(any(greaterThan(coords, dimensions))){return;}
-        vec2 uv = vec2(coords) / dimensions;
-        
-        vec2 axis = (point_b - point_a) * dimensions;
-        vec2 vector = (uv - point_a) * dimensions;
+        ivec2 dimensions = imageSize(img_output).xy;
+        if(any(greaterThanEqual(coords, dimensions))){return;}
+
+        vec2 dim = vec2(dimensions);
+        vec2 uv = vec2(coords) / dim;
+        vec2 axis = (point_b - point_a) * dim;
+        vec2 vector = (uv - point_a) * dim;
 
         float t = 0.;
         float norm2 = dot(axis, axis);
@@ -135,6 +136,8 @@ def _apply(_render_context, color_a, color_b, point_a, point_b, interpolation):
                         linear_to_srgb(color_b.rgb), t);
             color = srgb_to_linear(color);
         }
+
+        color = max(color, 0.);
         imageStore(img_output, coords, vec4(color, alpha));
     }
     """

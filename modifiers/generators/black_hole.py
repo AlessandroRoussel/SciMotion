@@ -125,10 +125,10 @@ def _apply(_render_context, tilt, spin, disc_min, disc_max):
 
     void main()
     {
-        vec2 coords = vec2(gl_GlobalInvocationID.xy);
-        vec2 dimensions = vec2(imageSize(img_output).xy);
-        if(any(greaterThan(coords, dimensions))){return;}
-        vec2 uv = (2.*coords-dimensions.xy)/dimensions.x;
+        ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+        ivec2 dimensions = imageSize(img_output).xy;
+        if(any(greaterThanEqual(coords, dimensions))){return;}
+        vec2 uv = (2.*vec2(coords)-vec2(dimensions))/float(dimensions.x);
 
         float x = sqrt(camR*camR+a*a)*cos(tilt);
         float z = camR*sin(tilt);

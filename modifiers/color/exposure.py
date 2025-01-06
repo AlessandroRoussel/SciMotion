@@ -43,11 +43,14 @@ def _apply(_render_context, exposure, offset, gamma):
 
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-        vec2 dimensions = vec2(imageSize(img_output).xy);
-        if(any(greaterThan(coords, dimensions))){return;}
-
+        ivec2 dimensions = imageSize(img_output).xy;
+        if(any(greaterThanEqual(coords, dimensions))){return;}
         vec4 color = imageLoad(img_input, coords);
-        color.rgb = pow(exposure*color.rgb + offset, vec3(gamma));
+
+        if(gamma > 0.){
+            color.rgb = pow(exposure*color.rgb + offset, vec3(1./gamma));
+            color.rgb = max(color.rgb, 0.);
+        }
 
         imageStore(img_output, coords, color);
     }

@@ -42,6 +42,12 @@ _parameters = [
                                         "Gaussian"]}
     },
     {
+        "name_id": "clamping",
+        "title": "Clamp highlights",
+        "data_type": "boolean",
+        "default_value": 1
+    },
+    {
         "name_id": "animated",
         "title": "Animated",
         "data_type": "boolean",
@@ -49,13 +55,13 @@ _parameters = [
     },
     {
         "name_id": "seed",
-        "title": "Seed",
+        "title": "Random seed",
         "data_type": "integer"
     }
 ]
 
 def _apply(_render_context, amount, chromaticity, space, distribution,
-           animated, seed):
+           clamping, animated, seed):
     gl_context = _render_context.get_gl_context()
     width = _render_context.get_width()
     height = _render_context.get_height()
@@ -74,6 +80,7 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
     uniform int distribution;
     uniform bool animated;
     uniform int seed;
+    uniform bool clamping;
 
     vec3 srgb_to_linear(vec3 srgb){
         bvec3 cutoff = lessThan(srgb, vec3(.04045));
@@ -108,7 +115,7 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
         uint one = 0x3F800000u;
         uvec3 u = floatBitsToUint(f);
         uint h = hash3(u.x, u.y, u.z);
-        return uintBitsToFloat((h & mantissaMask) | one) - 1.;
+        return fract(uintBitsToFloat((h & mantissaMask) | one) - 1.);
     }
 
     vec3 random_vec3(vec3 f){
@@ -118,7 +125,7 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
     }
 
     vec3 inverf(vec3 x){
-        vec3 w = .99999999*x;
+        vec3 w = .99999*x;
         vec3 u = log(1.-w*w);
         vec3 z = 4.54728408834 + .5*u;
         return sign(x)*sqrt(sqrt(z*z-u*7.14285714286) - z);
@@ -131,13 +138,12 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
 
     void main() {
         ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-        vec2 dimensions = vec2(imageSize(img_output).xy);
-        if(any(greaterThan(coords, dimensions))){return;}
+        ivec2 dimensions = imageSize(img_output).xy;
+        if(any(greaterThanEqual(coords, dimensions))){return;}
 
         vec4 color = imageLoad(img_input, coords);
         if(amount > 0.){
-            vec3 uvw = vec3(vec2(coords)/dimensions,
-                            animated ? float(frame) : 0.);
+            vec3 uvw = vec3(vec2(coords), animated ? float(frame) : 0.);
             uvw.z += float(seed);
 
             vec3 chroma_noise = random_vec3(uvw);
@@ -160,6 +166,8 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
             }
         }
 
+        color.rgb = max(color.rgb, 0.);
+        if(clamping){color.rgb = min(color.rgb, 1.);}
         imageStore(img_output, coords, color);
     }
     """
@@ -171,6 +179,7 @@ def _apply(_render_context, amount, chromaticity, space, distribution,
     compute_shader["distribution"] = distribution
     compute_shader["animated"] = animated
     compute_shader["seed"] = seed
+    compute_shader["clamping"] = clamping
 
     _sequence_context = _render_context.get_sequence_context()
     compute_shader["frame"] = float(_sequence_context.get_current_frame())
